@@ -5,6 +5,7 @@ third_party/do-not-clean
 third_party/products/
 third_party/sources/IOUserEthernetController.h
 tunnelblick/build
+tunnelblick/sing-box
 
 # Xcode 7 user data
 xcuserdata/

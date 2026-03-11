@@ -114,12 +114,21 @@
 	
     IBOutlet TBButton            * monitorNetworkForChangesCheckbox;
     IBOutlet TBButton            * routeAllTrafficThroughVpnCheckbox;
+    IBOutlet TBButton            * routeNoPullCheckbox;
 	IBOutlet TBButton            * disableIpv6OnTunCheckbox;
     IBOutlet TBButton            * disableSecondaryNetworkServicesCheckbox;
     IBOutlet TBButton            * checkIPAddressAfterConnectOnAdvancedCheckbox;
 	
     IBOutlet TBButton            * advancedButton;
+
+    IBOutlet NSButton            * trustedWiFiButton;
+
+    IBOutlet NSButton            * socksEnabledCheckbox;
+    IBOutlet NSTextField         * socksProxyField;
 }
+
+-(NSButton *)    socksEnabledCheckbox;
+-(NSTextField *) socksProxyField;
 
 // Getters
 
@@ -188,6 +197,7 @@ TBPROPERTY_READONLY(NSMenuItem *,          uponUnexpectedDisconnectDisableNetwor
 
 TBPROPERTY_READONLY(TBButton *,            monitorNetworkForChangesCheckbox)
 TBPROPERTY_READONLY(TBButton *,            routeAllTrafficThroughVpnCheckbox)
+TBPROPERTY_READONLY(TBButton *,            routeNoPullCheckbox)
 TBPROPERTY_READONLY(TBButton *,            disableIpv6OnTunCheckbox)
 TBPROPERTY_READONLY(TBButton *,            disableSecondaryNetworkServicesCheckbox)
 TBPROPERTY_READONLY(TBButton *,            checkIPAddressAfterConnectOnAdvancedCheckbox)
@@ -201,5 +211,7 @@ TBPROPERTY_READONLY(TBPopUpButton *,       loggingLevelPopUpButton)
 TBPROPERTY_READONLY(NSArrayController *,   loggingLevelArrayController)
 
 TBPROPERTY_READONLY(TBButton *,            advancedButton)
+
+-(NSButton *) trustedWiFiButton;
 
 @end

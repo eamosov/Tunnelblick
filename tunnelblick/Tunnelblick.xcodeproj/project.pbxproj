@@ -3,10 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12AB34CD56EF78901234ABCD /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 56EF78AB1234CD9012345678 /* CoreLocation.framework */; };
 		615F748A0ED3A4C2007F6F0A /* en.lproj in Resources */ = {isa = PBXBuildFile; fileRef = 615F74860ED3A4C2007F6F0A /* en.lproj */; };
 		615F748F0ED3A4E5007F6F0A /* fr.lproj in Resources */ = {isa = PBXBuildFile; fileRef = 615F748C0ED3A4E5007F6F0A /* fr.lproj */; };
 		615F74990ED3A4FA007F6F0A /* de.lproj in Resources */ = {isa = PBXBuildFile; fileRef = 615F74900ED3A4FA007F6F0A /* de.lproj */; };
@@ -264,6 +265,7 @@
 		8D11072D0486CEB800E47090 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 29B97316FDCFA39411CA2CEA /* main.m */; settings = {ATTRIBUTES = (); }; };
 		8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */; };
 		A425AA582380E5C7000686E7 /* LocalAuthentication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A425AA572380E5C7000686E7 /* LocalAuthentication.framework */; };
+		AB12CD34EF56789012345678 /* TrustedWiFiTableHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = CD34EF56AB12789056781234 /* TrustedWiFiTableHelper.m */; };
 		B8045A01161EF15300609C98 /* ConfigurationConverter.m in Sources */ = {isa = PBXBuildFile; fileRef = B87F82911612964D008E0EB1 /* ConfigurationConverter.m */; };
 		B8045A09161EF26700609C98 /* sharedRoutines.m in Sources */ = {isa = PBXBuildFile; fileRef = B8045A08161EF26700609C98 /* sharedRoutines.m */; };
 		B8045A0A161EF26700609C98 /* sharedRoutines.m in Sources */ = {isa = PBXBuildFile; fileRef = B8045A08161EF26700609C98 /* sharedRoutines.m */; };
@@ -285,6 +287,11 @@
 		B8C9FB49170C77A400BCA243 /* LeftNavViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = B8C9FB46170C77A400BCA243 /* LeftNavViewController.m */; };
 		B8D807031832EEC400A0B937 /* NSTimer+TB.m in Sources */ = {isa = PBXBuildFile; fileRef = B8D807021832EEC400A0B937 /* NSTimer+TB.m */; };
 		B8F6264C1641C8C700943C59 /* easyRsa.m in Sources */ = {isa = PBXBuildFile; fileRef = B8F6264B1641C8C700943C59 /* easyRsa.m */; };
+
+		C3F8D6E9AE7BBCD35F6E8BAA /* StatusCheckController.m in Sources */ = {isa = PBXBuildFile; fileRef = B2E7C5D8FD6AABC24E5D7A9F /* StatusCheckController.m */; };
+		CF9BA5C114466D2833EC828D /* SingBoxManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 454BA4C1DFA74616123372D8 /* SingBoxManager.m */; };
+		E5BAFF0BCA9DDEF57B8AADCC /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D4A9E7FABF8CCDE46A7F9CBB /* CoreWLAN.framework */; };
+		F9C5A3B6DB4E8FA02C3B5E7D /* TrustedWiFiManager.m in Sources */ = {isa = PBXBuildFile; fileRef = E8B4F2A5CA3D7E9F1B2A4D6C /* TrustedWiFiManager.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -386,6 +393,13 @@
 			remoteGlobalIDString = 63ED8EE51A1E84560045D34E;
 			remoteInfo = tunnelblickd;
 		};
+		D7D462052F634C41003A0A76 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 29B97313FDCFA39411CA2CEA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D7D461FB2F634B17003A0A76;
+			remoteInfo = "batch-routes";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -419,6 +433,15 @@
 			name = "Copy update_signing_util_debugger";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D7D461FA2F634B17003A0A76 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -428,6 +451,8 @@
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		32CA4F630368D1EE00C91783 /* Tunnelblick_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tunnelblick_Prefix.pch; sourceTree = "<group>"; };
+		454BA4C1DFA74616123372D8 /* SingBoxManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SingBoxManager.m; sourceTree = "<group>"; };
+		56EF78AB1234CD9012345678 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		615F74860ED3A4C2007F6F0A /* en.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = en.lproj; sourceTree = "<group>"; };
 		615F748C0ED3A4E5007F6F0A /* fr.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = fr.lproj; sourceTree = "<group>"; };
 		615F74900ED3A4FA007F6F0A /* de.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = de.lproj; sourceTree = "<group>"; };
@@ -719,7 +744,10 @@
 		63FFD6571D0E9D9400D4FFD9 /* SystemAuth.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SystemAuth.m; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8D1107320486CEB800E47090 /* Tunnelblick.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tunnelblick.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1D6B4C7EC5F9AB13D4C6F8E /* StatusCheckController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StatusCheckController.h; sourceTree = "<group>"; };
+
 		A425AA572380E5C7000686E7 /* LocalAuthentication.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = LocalAuthentication.framework; path = System/Library/Frameworks/LocalAuthentication.framework; sourceTree = SDKROOT; };
+		B2E7C5D8FD6AABC24E5D7A9F /* StatusCheckController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StatusCheckController.m; sourceTree = "<group>"; };
 		B8045A07161EF26700609C98 /* sharedRoutines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sharedRoutines.h; sourceTree = "<group>"; };
 		B8045A08161EF26700609C98 /* sharedRoutines.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = sharedRoutines.m; sourceTree = "<group>"; };
 		B8051F4C1754DA630024841C /* sk.lproj */ = {isa = PBXFileReference; lastKnownFileType = folder; path = sk.lproj; sourceTree = "<group>"; };
@@ -752,7 +780,18 @@
 		B8D807021832EEC400A0B937 /* NSTimer+TB.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSTimer+TB.m"; sourceTree = "<group>"; };
 		B8F6264A1641C8C700943C59 /* easyRsa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = easyRsa.h; sourceTree = "<group>"; };
 		B8F6264B1641C8C700943C59 /* easyRsa.m */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.objc; fileEncoding = 4; path = easyRsa.m; sourceTree = "<group>"; };
+		C88093E9C43AB504AA758224 /* SingBoxManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SingBoxManager.h; sourceTree = "<group>"; };
+		CD34EF56AB12789056781234 /* TrustedWiFiTableHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TrustedWiFiTableHelper.m; sourceTree = "<group>"; };
+		D4A9E7FABF8CCDE46A7F9CBB /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
+		D7A3E1F4B92C6D8E0A1F3C5B /* TrustedWiFiManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TrustedWiFiManager.h; sourceTree = "<group>"; };
+		D7D461FC2F634B17003A0A76 /* batch-routes */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "batch-routes"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E8B4F2A5CA3D7E9F1B2A4D6C /* TrustedWiFiManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TrustedWiFiManager.m; sourceTree = "<group>"; };
+		EF12AB34CD56789012345678 /* TrustedWiFiTableHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TrustedWiFiTableHelper.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D7D461FD2F634B17003A0A76 /* batch-routes */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = "batch-routes"; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		61BC4BBF0E2F9FE900F24255 /* Frameworks */ = {
@@ -867,6 +906,15 @@
 				63AE127F25C239500008379F /* Security.framework in Frameworks */,
 				634616871A9B85C60049C16C /* SystemConfiguration.framework in Frameworks */,
 				630AF69E2A3E5BBC001D50B7 /* IOKit.framework in Frameworks */,
+				E5BAFF0BCA9DDEF57B8AADCC /* CoreWLAN.framework in Frameworks */,
+				12AB34CD56EF78901234ABCD /* CoreLocation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D7D461F92F634B17003A0A76 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -888,6 +936,14 @@
 				61BC4B690E2F9EBC00F24255 /* MenuController.h */,
 				61BC4B6A0E2F9EBC00F24255 /* MenuController.m */,
 				61BC4B6B0E2F9EBC00F24255 /* NetSocket.h */,
+				C88093E9C43AB504AA758224 /* SingBoxManager.h */,
+				454BA4C1DFA74616123372D8 /* SingBoxManager.m */,
+				A1D6B4C7EC5F9AB13D4C6F8E /* StatusCheckController.h */,
+				B2E7C5D8FD6AABC24E5D7A9F /* StatusCheckController.m */,
+				EF12AB34CD56789012345678 /* TrustedWiFiTableHelper.h */,
+				CD34EF56AB12789056781234 /* TrustedWiFiTableHelper.m */,
+				D7A3E1F4B92C6D8E0A1F3C5B /* TrustedWiFiManager.h */,
+				E8B4F2A5CA3D7E9F1B2A4D6C /* TrustedWiFiManager.m */,
 				61BC4B6C0E2F9EBC00F24255 /* NetSocket.m */,
 				61BC4B650E2F9EBC00F24255 /* VPNConnection.h */,
 				61BC4B660E2F9EBC00F24255 /* VPNConnection.m */,
@@ -931,6 +987,7 @@
 				630680FA2BA104A500563B9A /* Tunnelblick Launcher.app */,
 				636F48B42BBA4406001C9EFE /* TunnelblickUpdateHelper */,
 				63372AE82EC402D6004E5014 /* update_signing_util */,
+				D7D461FC2F634B17003A0A76 /* batch-routes */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -943,6 +1000,7 @@
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
 				29B97317FDCFA39411CA2CEA /* Resources */,
 				630680FB2BA104A500563B9A /* Tunnelblick Launcher */,
+				D7D461FD2F634B17003A0A76 /* batch-routes */,
 				29B97323FDCFA39411CA2CEA /* Frameworks */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
 				635CA99F12F9DCE300287298 /* AppKit.framework */,
@@ -1000,6 +1058,7 @@
 				61F294A50ED389520097DE94 /* openvpn.conf */,
 				635CA45212F8285D00287298 /* COPYING */,
 				089C165CFE840E0CC02AAC07 /* InfoPlist.strings */,
+
 			);
 			name = Resources;
 			sourceTree = "<group>";
@@ -1011,6 +1070,8 @@
 				630AF69A2A3E5B36001D50B7 /* CoreFoundation.framework */,
 				63F0E58D2A0D77D60098CB1D /* OpenDirectory.framework */,
 				63C2E2E724AB8D6C00F79628 /* IOKit.framework */,
+				D4A9E7FABF8CCDE46A7F9CBB /* CoreWLAN.framework */,
+				56EF78AB1234CD9012345678 /* CoreLocation.framework */,
 				A425AA572380E5C7000686E7 /* LocalAuthentication.framework */,
 				63AB7CFF1D930BCE008ED621 /* QuartzCore.framework */,
 				6329EA031A9AF7B700A0BFA8 /* CFNetwork.framework */,
@@ -1724,6 +1785,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C01FCF4A08A954540054247B /* Build configuration list for PBXNativeTarget "Tunnelblick" */;
 			buildPhases = (
+				C1274AB20000000000000001 /* Build sing-box */,
 				616A49200E38D17500477476 /* Build Third Party Items */,
 				8D1107290486CEB800E47090 /* Resources */,
 				8D11072C0486CEB800E47090 /* Sources */,
@@ -1735,6 +1797,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				D7D462062F634C41003A0A76 /* PBXTargetDependency */,
 				63B15DAD2ECD0FEB00DBC72B /* PBXTargetDependency */,
 				63372B042EC404E2004E5014 /* PBXTargetDependency */,
 				636F48BC2BBA4430001C9EFE /* PBXTargetDependency */,
@@ -1754,6 +1817,28 @@
 			productReference = 8D1107320486CEB800E47090 /* Tunnelblick.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D7D461FB2F634B17003A0A76 /* batch-routes */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D7D462022F634B17003A0A76 /* Build configuration list for PBXNativeTarget "batch-routes" */;
+			buildPhases = (
+				D7D461F82F634B17003A0A76 /* Sources */,
+				D7D461F92F634B17003A0A76 /* Frameworks */,
+				D7D461FA2F634B17003A0A76 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D7D461FD2F634B17003A0A76 /* batch-routes */,
+			);
+			name = "batch-routes";
+			packageProductDependencies = (
+			);
+			productName = "batch-routes";
+			productReference = D7D461FC2F634B17003A0A76 /* batch-routes */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1771,6 +1856,9 @@
 					};
 					8D1107260486CEB800E47090 = {
 						LastSwiftMigration = 2600;
+					};
+					D7D461FB2F634B17003A0A76 = {
+						CreatedOnToolsVersion = 26.3;
 					};
 				};
 			};
@@ -1809,6 +1897,7 @@
 				636F48B32BBA4406001C9EFE /* TunnelblickUpdateHelper */,
 				635BF17E1501CCDF00D87717 /* ExternalBuildCleanScript */,
 				63372ADF2EC402D6004E5014 /* update_signing_util */,
+				D7D461FB2F634B17003A0A76 /* batch-routes */,
 			);
 		};
 /* End PBXProject section */
@@ -1958,12 +2047,30 @@
 				63DEC01C20EFC2D30008AC26 /* client.4.down.tunnelblick.sh in Resources */,
 				634E02071CAD9776008637FF /* hr.lproj in Resources */,
 				63F7497D1CB149820043C198 /* TBVersionString.txt in Resources */,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		C1274AB20000000000000001 /* Build sing-box */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/build-sing-box.sh",
+			);
+			name = "Build sing-box";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/sing-box",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "\"${PROJECT_DIR}/build-sing-box.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		610AEAE70E2FE63900EA3C79 /* Create the Applications and .dmgs */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -2160,6 +2267,8 @@
 				6375FB481387F0270034CB78 /* SettingsSheetWindowController.m in Sources */,
 				63D893F32124E5FE000E20E5 /* SetupImporter.m in Sources */,
 				B8045A09161EF26700609C98 /* sharedRoutines.m in Sources */,
+				CF9BA5C114466D2833EC828D /* SingBoxManager.m in Sources */,
+				C3F8D6E9AE7BBCD35F6E8BAA /* StatusCheckController.m in Sources */,
 				637A871913B74B81003C1871 /* SplashWindowController.m in Sources */,
 				639A1100132AC9D800754C2A /* StatusWindowController.m in Sources */,
 				63FFD6581D0E9D9400D4FFD9 /* SystemAuth.m in Sources */,
@@ -2174,6 +2283,8 @@
 				638E69611097725500587933 /* TBUserDefaults.m in Sources */,
 				631D15AC2BE8477300728E32 /* TBValidator.m in Sources */,
 				634F1B9D1D23FD9D00B1E929 /* Tracker.m in Sources */,
+				F9C5A3B6DB4E8FA02C3B5E7D /* TrustedWiFiManager.m in Sources */,
+				AB12CD34EF56789012345678 /* TrustedWiFiTableHelper.m in Sources */,
 				6317AD942C80F681008D7CAA /* TunnelblickInfo.m in Sources */,
 				635971421C06736B0055FBC5 /* UIHelper.m in Sources */,
 				63372B092EC79472004E5014 /* UpdateSigning.m in Sources */,
@@ -2189,6 +2300,13 @@
 				63E56EEE13848338007E39AB /* VPNServiceWelcomeController.m in Sources */,
 				63A66B7C2518F537002B1D9D /* WarningNote.m in Sources */,
 				B85B5DBD15F2430900EDCF95 /* WelcomeController.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D7D461F82F634B17003A0A76 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2260,6 +2378,11 @@
 			target = 63ED8EE51A1E84560045D34E /* tunnelblickd */;
 			targetProxy = 63ED8EF41A1E84A70045D34E /* PBXContainerItemProxy */;
 		};
+		D7D462062F634C41003A0A76 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D7D461FB2F634B17003A0A76 /* batch-routes */;
+			targetProxy = D7D462052F634C41003A0A76 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
@@ -2287,8 +2410,10 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2315,8 +2440,10 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2356,6 +2483,7 @@
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = "Tunnelblick Launcher/Tunnelblick_Launcher.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
@@ -2363,6 +2491,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -2418,13 +2547,15 @@
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = "Tunnelblick Launcher/Tunnelblick_Launcher.entitlements";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -2462,8 +2593,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2496,8 +2629,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2521,7 +2656,9 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
@@ -2572,11 +2709,12 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = Z2SG5H3HC8;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
@@ -2613,11 +2751,12 @@
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = Z2SG5H3HC8;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -2639,8 +2778,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2714,7 +2855,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				ONLY_ACTIVE_ARCH = NO;
 				RUN_CLANG_STATIC_ANALYZER = YES;
-				SDKROOT = macosx26.0;
+				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wall";
 			};
 			name = Release;
@@ -2724,12 +2865,14 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = Z2SG5H3HC8;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING = Yes;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2749,8 +2892,10 @@
 					"@loader_path/../Frameworks",
 					"@executable_path/../Frameworks",
 				);
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = net.tunnelblick.tunnelblick;
 				PRODUCT_NAME = Tunnelblick;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Tunnelblick-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -2767,10 +2912,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/bin;
 				OTHER_LDFLAGS = (
@@ -2780,6 +2927,7 @@
 					$PROJECT_DIR/Info.plist,
 				);
 				PRODUCT_NAME = openvpnstart;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WARNING_CFLAGS = (
 					"-Wall",
 					"-Wextra",
@@ -2793,10 +2941,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/bin;
 				OTHER_LDFLAGS = (
@@ -2806,6 +2956,7 @@
 					$PROJECT_DIR/Info.plist,
 				);
 				PRODUCT_NAME = installer;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WARNING_CFLAGS = (
 					"-Wall",
 					"-Wextra",
@@ -2820,10 +2971,12 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
@@ -2839,6 +2992,7 @@
 					AppKit,
 				);
 				PRODUCT_NAME = atsystemstart;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WARNING_CFLAGS = (
 					"-Wall",
 					"-Wextra",
@@ -2853,10 +3007,12 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
@@ -2872,6 +3028,7 @@
 					AppKit,
 				);
 				PRODUCT_NAME = "standardize-scutil-output";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WARNING_CFLAGS = (
 					"-Wall",
 					"-Wextra",
@@ -2887,8 +3044,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2908,11 +3067,14 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				INSTALL_PATH = /usr/local/bin;
 				PRODUCT_NAME = "process-network-changes";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WARNING_CFLAGS = (
 					"-Wall",
 					"-Wextra",
@@ -2927,8 +3089,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2951,8 +3115,10 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
@@ -2964,6 +3130,7 @@
 					AppKit,
 				);
 				PRODUCT_NAME = "tunnelblick-helper";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
@@ -2973,8 +3140,10 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_IDENTITY = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = ZZ46P8LWV3;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2997,8 +3166,10 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
@@ -3010,6 +3181,7 @@
 					AppKit,
 				);
 				PRODUCT_NAME = tunnelblickd;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
@@ -3018,10 +3190,13 @@
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_WEAK = YES;
-				CODE_SIGN_IDENTITY = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
 				DISABLE_MANUAL_TARGET_ORDER_BUILD_WARNING = Yes;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
@@ -3045,6 +3220,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = net.tunnelblick.tunnelblick;
 				PRODUCT_NAME = Tunnelblick;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Tunnelblick-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -3106,10 +3282,81 @@
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				ONLY_ACTIVE_ARCH = YES;
 				RUN_CLANG_STATIC_ANALYZER = YES;
-				SDKROOT = macosx26.0;
+				SDKROOT = macosx;
 				WARNING_CFLAGS = "-Wall";
 			};
 			name = Debug;
+		};
+		D7D462002F634B17003A0A76 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		D7D462012F634B17003A0A76 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = ZZ46P8LWV3;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
@@ -3227,6 +3474,15 @@
 			buildConfigurations = (
 				C01FCF4F08A954540054247B /* Debug */,
 				6398C40113DB30F60005FEB0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D7D462022F634B17003A0A76 /* Build configuration list for PBXNativeTarget "batch-routes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D7D462002F634B17003A0A76 /* Debug */,
+				D7D462012F634B17003A0A76 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

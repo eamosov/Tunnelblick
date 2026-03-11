@@ -117,6 +117,8 @@ CopyHelpersIntoResources() {
     cp -a "build/${CONFIGURATION}/tunnelblickd"               "${APP_PATH}/Contents/Resources/"
     cp -a "build/${CONFIGURATION}/tunnelblick-helper"         "${APP_PATH}/Contents/Resources/"
     cp -a "build/${CONFIGURATION}/update_signing_util"        "${APP_PATH}/Contents/Resources/"
+    cp -a "build/${CONFIGURATION}/batch-routes"              "${APP_PATH}/Contents/Resources/"
+    cp -a "build/${CONFIGURATION}/sing-box"                 "${APP_PATH}/Contents/Resources/"
 }
 
 CopyKextsIntoResources() {

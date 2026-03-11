@@ -49,6 +49,8 @@
 #import "TBOperationQueue.h"
 #import "TBUserDefaults.h"
 #import "UIHelper.h"
+#import "SingBoxManager.h"
+#import "TrustedWiFiManager.h"
 #import "VPNConnection.h"
 
 extern volatile int32_t   gActiveInactiveState;
@@ -221,6 +223,7 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
 
         waitingForNetworkAvailability = FALSE;
         wereWaitingForNetworkAvailability = FALSE;
+        werePausedForTrustedWifi = FALSE;
         stopWaitForNetworkAvailabilityThread = FALSE;
         tryingToHookup = FALSE;
         initialHookupTry = TRUE;
@@ -255,6 +258,11 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
         statistics.lastSet = [[NSDate date] retain];
 
         [self clearStatisticsIncludeTotals: YES];
+
+        [[NSNotificationCenter defaultCenter] addObserver: self
+                                                 selector: @selector(trustedWiFiSSIDChanged:)
+                                                     name: @"TBTrustedWiFiSSIDChanged"
+                                                   object: nil];
     }
 
     return self;
@@ -968,6 +976,7 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
 
 -(void) dealloc {
 
+    [[NSNotificationCenter defaultCenter] removeObserver: self];
     [self startDisconnectingUserKnows: @NO];
     [gMC cancelAllIPCheckThreadsForConnection: self];
 
@@ -1293,6 +1302,12 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
         return NO;
     }
 
+    // Skip IP address check for split tunnel (no redirect-gateway)
+    NSString * routeAllKey = [displayName stringByAppendingString: @"-routeAllTrafficThroughVpn"];
+    if (  ! [gTbDefaults boolForKey: routeAllKey]  ) {
+        return NO;
+    }
+
     NSString * key = [displayName stringByAppendingString: @"-notOKToCheckThatIPAddressDidNotChangeAfterConnection"];
     return ! [gTbDefaults boolForKey: key];
 }
@@ -1376,6 +1391,91 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
         [self performSelectorOnMainThread: @selector(IPAddressChangeSucceeded:) withObject: @YES waitUntilDone: NO];
         return TRUE;
     }
+}
+
+-(void) logNetworkStatusChecks {
+
+    // Runs in a background thread. Checks public IP via multiple services and logs results.
+
+    NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
+
+    // Wait a few seconds for routes and DNS to settle
+    sleep(3);
+
+    if (  ! [[self state] isEqualToString: @"CONNECTED"]  ) {
+        [pool drain];
+        return;
+    }
+
+    [self addToLog: @"Network status check:"];
+
+    struct {
+        const char * name;
+        const char * url;
+    } services[] = {
+        { "tunnelblick.net/ipinfo", "https://tunnelblick.net/ipinfo" },
+        { "ifconfig.me",            "https://ifconfig.me/all.json" },
+        { "api.ipify.org",          "https://api.ipify.org/?format=json" },
+        { NULL, NULL }
+    };
+
+    for (int i = 0; services[i].name != NULL; i++) {
+
+        NSString * name = [NSString stringWithUTF8String: services[i].name];
+        NSURL * url = [NSURL URLWithString: [NSString stringWithUTF8String: services[i].url]];
+
+        NSMutableURLRequest * request = [NSMutableURLRequest requestWithURL: url
+                                                               cachePolicy: NSURLRequestReloadIgnoringLocalCacheData
+                                                           timeoutInterval: 10.0];
+        if (  [name isEqualToString: @"tunnelblick.net/ipinfo"]  ) {
+            [request setValue: @"Tunnelblick ipInfoChecker: StatusCheck" forHTTPHeaderField: @"User-Agent"];
+        } else {
+            [request setValue: @"curl/7.0" forHTTPHeaderField: @"User-Agent"];
+        }
+
+        NSDate * start = [NSDate date];
+        NSURLResponse * response = nil;
+        NSError * error = nil;
+        NSData * data = [NSURLConnection sendSynchronousRequest: request returningResponse: &response error: &error];
+        NSTimeInterval latency = [[NSDate date] timeIntervalSinceDate: start] * 1000.0;
+
+        if (  data && ! error  ) {
+            NSHTTPURLResponse * httpResponse = (NSHTTPURLResponse *) response;
+            if (  [httpResponse statusCode] == 200  ) {
+                NSString * body = [[[NSString alloc] initWithData: data encoding: NSUTF8StringEncoding] autorelease];
+                NSString * ip = nil;
+
+                if (  [name isEqualToString: @"tunnelblick.net/ipinfo"]  ) {
+                    NSArray * parts = [body componentsSeparatedByString: @","];
+                    if (  [parts count] >= 1  ) {
+                        ip = [[parts objectAtIndex: 0] stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                    }
+                } else if (  [name isEqualToString: @"ifconfig.me"]  ) {
+                    NSString * pattern = @"\"ip_addr\"\\s*:\\s*\"([^\"]+)\"";
+                    NSRegularExpression * regex = [NSRegularExpression regularExpressionWithPattern: pattern options: 0 error: nil];
+                    NSTextCheckingResult * match = [regex firstMatchInString: body options: 0 range: NSMakeRange(0, [body length])];
+                    if (  match && [match numberOfRanges] >= 2  ) {
+                        ip = [body substringWithRange: [match rangeAtIndex: 1]];
+                    }
+                } else if (  [name isEqualToString: @"api.ipify.org"]  ) {
+                    NSString * pattern = @"\"ip\"\\s*:\\s*\"([^\"]+)\"";
+                    NSRegularExpression * regex = [NSRegularExpression regularExpressionWithPattern: pattern options: 0 error: nil];
+                    NSTextCheckingResult * match = [regex firstMatchInString: body options: 0 range: NSMakeRange(0, [body length])];
+                    if (  match && [match numberOfRanges] >= 2  ) {
+                        ip = [body substringWithRange: [match rangeAtIndex: 1]];
+                    }
+                }
+
+                [self addToLog: [NSString stringWithFormat: @"  %@ — %@ (%.0f ms)", name, ip ? ip : @"no IP parsed", latency]];
+            } else {
+                [self addToLog: [NSString stringWithFormat: @"  %@ — HTTP %ld (%.0f ms)", name, (long)[httpResponse statusCode], latency]];
+            }
+        } else {
+            [self addToLog: [NSString stringWithFormat: @"  %@ — error: %@ (%.0f ms)", name, [error localizedDescription], latency]];
+        }
+    }
+
+    [pool drain];
 }
 
 -(void) checkIPAddressErrorResultLogMessage: (NSString *) msg {
@@ -1846,6 +1946,88 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
     [pool drain];
 }
 
+-(void) waitForTrustedWiFiLeaveThread: (NSDictionary *) dict {
+
+    // Secondary thread. Waits until device is on a non-trusted WiFi network, then reconnects.
+    // Stays paused if WiFi is off (no SSID) or if SSID is trusted.
+    NSAutoreleasePool * pool = [NSAutoreleasePool new];
+
+    while ( YES ) {
+        if ( gShuttingDownTunnelblick ) break;
+        if ( [requestedState isEqualToString: @"EXITING"] ) break;
+
+        NSString * ssid = [TrustedWiFiManager currentWiFiSSID];
+        if ( ssid && ! [TrustedWiFiManager isSSIDTrusted: ssid forDisplayName: [self displayName]] ) {
+            // Connected to a non-trusted WiFi — time to reconnect
+            break;
+        }
+
+        usleep(ONE_TENTH_OF_A_SECOND_IN_MICROSECONDS * 10); // Check every second
+    }
+
+    if ( ! gShuttingDownTunnelblick && [requestedState isEqualToString: @"CONNECTED"] ) {
+        NSLog(@"TrustedWiFi: Left trusted WiFi network, reconnecting %@", [self displayName]);
+        [self addToLog: @"Resuming VPN - disconnected from trusted WiFi network"];
+        // Transition to EXITING state so connect: will accept the reconnection
+        [self performSelectorOnMainThread: @selector(setState:) withObject: @"EXITING" waitUntilDone: YES];
+        BOOL userKnows = [[dict objectForKey: @"userKnows"] boolValue];
+        [self performSelectorOnMainThread: @selector(connectOnMainThreadUserKnows:)
+                               withObject: [NSNumber numberWithBool: userKnows]
+                            waitUntilDone: NO];
+    }
+
+    [pool drain];
+}
+
+-(void) trustedWiFiSSIDChanged: (NSNotification *) notification {
+
+    (void) notification;
+
+    // Notification may arrive on a background thread; dispatch to main thread
+    if (  ! [NSThread isMainThread]  ) {
+        [self performSelectorOnMainThread: @selector(trustedWiFiSSIDChanged:) withObject: notification waitUntilDone: NO];
+        return;
+    }
+
+    // If connected and current WiFi is now trusted, pause the VPN
+    if (  [lastState isEqualToString: @"CONNECTED"]  ) {
+        if (  [TrustedWiFiManager shouldPauseVPNForDisplayName: [self displayName]]  ) {
+            NSString * currentSSID = [TrustedWiFiManager currentWiFiSSID];
+            [self addToLog: [NSString stringWithFormat: @"VPN paused - connected to trusted WiFi network '%@'", currentSSID]];
+
+            // Kill the OpenVPN process directly without full disconnect flow
+            [self expectDisconnect: @YES];
+            if (  pid > 0  ) {
+                [self killProcess];
+            }
+            [self disconnectFromManagmentSocket];
+
+            // Stop sing-box if running
+            if (  singBoxManager  ) {
+                [self addToLog: @"Stopping Sing-Box VLESS/Reality tunnel"];
+                [singBoxManager stop];
+                [singBoxManager release];
+                singBoxManager = nil;
+            }
+
+            portNumber = 0;
+            pid = 0;
+            areDisconnecting = FALSE;
+            areConnecting = FALSE;
+
+            // Set paused state and start waiting thread
+            [gMC removeConnection: self];
+            [self setState: @"TRUSTED_WIFI"];
+            [self setRequestedState: @"CONNECTED"];
+            [gMC addNonconnection: self];
+            [gMC updateIconImage];
+
+            NSDictionary * waitDict = @{@"userKnows": @YES};
+            [NSThread detachNewThreadSelector: @selector(waitForTrustedWiFiLeaveThread:) toTarget: self withObject: waitDict];
+        }
+    }
+}
+
 -(void) connectOnMainThreadUserKnows: (NSNumber *) userKnowsNumber {
 
     [self performSelectorOnMainThread: @selector(connectUserKnows:) withObject: userKnowsNumber waitUntilDone: YES];
@@ -1995,6 +2177,36 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
     [self disconnectFromManagmentSocket];
 
     [self clearLog];
+
+    // Warn if trusted WiFi is configured but Location Services not authorized
+    if ( [TrustedWiFiManager isLocationAuthorizationNeededForDisplayName: [self displayName]] ) {
+        [self addToLog: @"Warning: Trusted WiFi is configured but Location Services not authorized - SSID detection will not work"];
+        NSLog(@"TrustedWiFiManager: Location Services not authorized, requesting authorization");
+        [TrustedWiFiManager requestLocationAuthorization];
+        TBShowAlertWindow(NSLocalizedString(@"Location Services Required", @"Window title"),
+                          NSLocalizedString(@"Trusted WiFi networks are configured for this VPN, but Tunnelblick does not have Location Services permission.\n\n"
+                                            @"Without Location Services, Tunnelblick cannot detect the current WiFi network and the Trusted WiFi feature will not work.\n\n"
+                                            @"Please enable Location Services for Tunnelblick in System Settings > Privacy & Security > Location Services.",
+                                            @"Window text"));
+    }
+
+    // Check trusted WiFi - if on a trusted network, wait before connecting
+    if ( [TrustedWiFiManager shouldPauseVPNForDisplayName: [self displayName]] ) {
+        NSString * currentSSID = [TrustedWiFiManager currentWiFiSSID];
+        [self addToLog: [NSString stringWithFormat: @"VPN paused - connected to trusted WiFi network '%@'", currentSSID]];
+        [self setState: @"TRUSTED_WIFI"];
+        [gMC addNonconnection: self];
+
+        // Start waiting thread for trusted WiFi
+        NSDictionary * waitDict = @{@"userKnows": [NSNumber numberWithBool: userKnows],
+                                    @"requestedState": [self requestedState]};
+        [NSThread detachNewThreadSelector: @selector(waitForTrustedWiFiLeaveThread:) toTarget: self withObject: waitDict];
+
+        pthread_mutex_lock( &areConnectingMutex );
+        areConnecting = FALSE;
+        pthread_mutex_unlock( &areConnectingMutex );
+        return;
+    }
 
 	[self setArgumentsUsedToStartOpenvpnstart: [self argumentsForOpenvpnstartForNow: YES userKnows: userKnows]];
 
@@ -2773,6 +2985,61 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 		return nil;
 	}
 
+    // Parse sing-box (sb_*) directives from config and save to preferences
+    {
+        NSString * cfgContents = [self condensedSanitizedConfigurationFileContents];
+        if ( cfgContents ) {
+            NSMutableDictionary * sbPrefs = [NSMutableDictionary dictionary];
+            BOOL sbEnabled = [SingBoxManager parseSingBoxDirectivesFromConfig: cfgContents intoPreferences: sbPrefs];
+
+            // Also extract original remote address/port
+            NSString * remoteAddr = nil;
+            NSString * remotePort = nil;
+            [SingBoxManager stripSingBoxDirectivesFromConfig: cfgContents remoteAddress: &remoteAddr remotePort: &remotePort];
+
+            NSString * prefix = [[self displayName] stringByAppendingString: @"-"];
+
+            // Save sb_* preferences
+            [gTbDefaults setBool: sbEnabled forKey: [prefix stringByAppendingString: @"singBoxEnable"]];
+
+            NSString * val;
+            if ( (val = [sbPrefs objectForKey: @"singBoxOverrideAddress"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxOverrideAddress"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxOverridePort"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxOverridePort"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxServerPort"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxServerPort"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxUUID"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxUUID"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxTlsServerName"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxTlsServerName"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxTlsPublicKey"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxTlsPublicKey"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxTlsShortId"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxTlsShortId"]];
+            }
+            if ( remoteAddr ) {
+                [gTbDefaults setObject: remoteAddr forKey: [prefix stringByAppendingString: @"singBoxOriginalRemoteAddress"]];
+            }
+            if ( remotePort ) {
+                [gTbDefaults setObject: remotePort forKey: [prefix stringByAppendingString: @"singBoxOriginalRemotePort"]];
+            }
+
+            // Apply tb_allow_manual_dns_override from config
+            NSNumber * allowManualDnsOverride = [sbPrefs objectForKey: @"allowChangesToManuallySetNetworkSettings"];
+            if ( allowManualDnsOverride ) {
+                [gTbDefaults setBool: [allowManualDnsOverride boolValue]
+                              forKey: [prefix stringByAppendingString: @"allowChangesToManuallySetNetworkSettings"]];
+            }
+        }
+    }
+
     unsigned useDNSNum = 0;
     unsigned useDNSStat = (unsigned) [self useDNSStatus];
 	if(  useDNSStat == 0) {
@@ -2901,6 +3168,7 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 	[self setBit: OPENVPNSTART_RESET_PRIMARY_INTERFACE_UNEXPECTED	inMask: &bitMask ifConnectionPreference: @"-resetPrimaryInterfaceAfterUnexpectedDisconnect"	inverted: NO  defaultTo: NO];
 	[self setBit: OPENVPNSTART_DISABLE_INTERNET_ACCESS_UNEXPECTED	inMask: &bitMask ifConnectionPreference: @"-disableNetworkAccessAfterUnexpectedDisconnect"	inverted: NO  defaultTo: NO];
     [self setBit: OPENVPNSTART_USE_REDIRECT_GATEWAY_DEF1			inMask: &bitMask ifConnectionPreference: @"-routeAllTrafficThroughVpn"						inverted: NO  defaultTo: NO];
+    [self setBit: OPENVPNSTART_USE_ROUTE_NOPULL					inMask: &bitMask ifConnectionPreference: @"-routeNoPull"									inverted: NO  defaultTo: NO];
     [self setBit: OPENVPNSTART_NO_DEFAULT_DOMAIN					inMask: &bitMask ifConnectionPreference: @"-doNotUseDefaultDomain"							inverted: NO  defaultTo: NO];
 	[self setBit: OPENVPNSTART_OVERRIDE_MANUAL_NETWORK_SETTINGS		inMask: &bitMask ifConnectionPreference: @"-allowChangesToManuallySetNetworkSettings"		inverted: NO  defaultTo: NO];
     [self setBit: OPENVPNSTART_WAIT_FOR_DHCP_IF_TAP					inMask: &bitMask ifConnectionPreference: @"-waitForDHCPInfoIfTap"							inverted: NO  defaultTo: NO];
@@ -2950,15 +3218,39 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 
     NSString * ourOpenVPNVersion = [gTbInfo.allOpenvpnOpenssslVersions objectAtIndex: finalOpenvpnIx];
 
+    // Check if sing-box is enabled for this connection and start it if so
+    // Only actually start sing-box when forNow is YES (real connection, not dry-run check)
+    NSString * singBoxPortString = @"0";
+    NSString * sbEnableKey = [[self displayName] stringByAppendingString: @"-singBoxEnable"];
+    if ( [gTbDefaults boolForKey: sbEnableKey] && forNow ) {
+        [self addToLog: @"Sing-Box VLESS/Reality tunnel is enabled for this connection"];
+
+        if ( singBoxManager ) {
+            [singBoxManager stop];
+            [singBoxManager release];
+        }
+        singBoxManager = [[SingBoxManager alloc] initWithDisplayName: [self displayName]];
+
+        unsigned int sbPort = [singBoxManager start];
+        if ( sbPort > 0 ) {
+            singBoxPortString = [NSString stringWithFormat: @"%u", sbPort];
+            [self addToLog: [NSString stringWithFormat: @"Sing-Box started on local port %u", sbPort]];
+        } else {
+            [self addToLog: @"Failed to start Sing-Box, connecting without it"];
+            [singBoxManager release];
+            singBoxManager = nil;
+        }
+    }
+
     NSArray * args = [NSArray arrayWithObjects:
-                      @"start", [[lastPartOfPath(cfgPath) copy] autorelease], portString, useDNSArg, skipScrSec, altCfgLoc, noMonitor, bitMaskString, leasewatchOptions, ourOpenVPNVersion, [self managementPassword], nil];
+                      @"start", [[lastPartOfPath(cfgPath) copy] autorelease], portString, useDNSArg, skipScrSec, altCfgLoc, noMonitor, bitMaskString, leasewatchOptions, ourOpenVPNVersion, [self managementPassword], singBoxPortString, nil];
 
     // IF THE NUMBER OF ARGUMENTS CHANGES:
     //    (1) Modify openvpnstart to use the new arguments
     //    (2) Change OPENVPNSTART_MAX_ARGC in defines.h to the maximum 'argc' for openvpnstart
     //        (That is, change it to one more than the number of entries in 'args' (because the path to openvpnstart is also an argument)
     //    (3) Change the constant integer in the next line to the same number
-#if 12 != OPENVPNSTART_MAX_ARGC
+#if 13 != OPENVPNSTART_MAX_ARGC
     #error "OPENVPNSTART_MAX_ARGC is not correct. It must be 1 more than the count of the 'args' array"
 #endif
 
@@ -3301,6 +3593,8 @@ static pthread_mutex_t areDisconnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 		}
 	}
 
+    BOOL wasPausedForTrustedWifi = [[self state] isEqualToString: @"TRUSTED_WIFI"];
+
     if (  [userKnows boolValue]  ) {
 		[self setRequestedState: @"EXITING"];
     }
@@ -3315,6 +3609,16 @@ static pthread_mutex_t areDisconnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 	if (  waitingForNetworkAvailability  ) {
 		[self expectDisconnect: userKnows];
 		stopWaitForNetworkAvailabilityThread = TRUE;
+		return YES;
+	}
+
+	// If paused for trusted WiFi, no OpenVPN process is running — just clean up
+	if (  wasPausedForTrustedWifi  ) {
+		[self addToLog: @"Disconnecting from trusted WiFi paused state"];
+		[self setRequestedState: @"EXITING"]; // Signals waitForTrustedWiFiLeaveThread to exit
+		werePausedForTrustedWifi = TRUE;
+		[self expectDisconnect: userKnows];
+		[self hasDisconnected];
 		return YES;
 	}
 
@@ -3449,6 +3753,13 @@ static pthread_mutex_t areDisconnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
 
 -(void) hasDisconnected {
+
+    // If paused for trusted WiFi, do not proceed with full disconnect cleanup
+    if (  [lastState isEqualToString: @"TRUSTED_WIFI"]  ) {
+        TBLog(@"DB-CD", @"hasDisconnected: '%@' skipped because state = TRUSTED_WIFI", [self displayName]);
+        return;
+    }
+
     // The 'pre-connect.sh' and 'post-tun-tap-load.sh' scripts are run by openvpnstart
     // The 'connected.sh' and 'reconnecting.sh' scripts are by this class's setState: method
     // The 'disconnect.sh' script is run here
@@ -3503,6 +3814,14 @@ static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
     tryingToHookup   = FALSE;
 	disconnectWhenStateChanges = FALSE;
 
+    // Stop sing-box if it was running
+    if ( singBoxManager ) {
+        [self addToLog: @"Stopping Sing-Box VLESS/Reality tunnel"];
+        [singBoxManager stop];
+        [singBoxManager release];
+        singBoxManager = nil;
+    }
+
     [gMC removeConnection:self];
 
     // Unload tun/tap if not used by any other processes
@@ -3516,7 +3835,7 @@ static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
     }
     [gMC unloadKextsForce: NO];
 
-	if (  ! wereWaitingForNetworkAvailability  ) {
+	if (  ! wereWaitingForNetworkAvailability && ! werePausedForTrustedWifi  ) {
 		// Run the post-disconnect script, if any
 		[self runScriptNamed: @"post-disconnect" openvpnstartCommand: @"postDisconnect"];
 	}
@@ -3566,6 +3885,7 @@ static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
 	}
 
 	wereWaitingForNetworkAvailability = FALSE;
+	werePausedForTrustedWifi = FALSE;
 
 	if (  connectAfterDisconnect  ) {
         BOOL userKnows = connectAfterDisconnectUserKnows;
@@ -4021,7 +4341,16 @@ static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
         if ([newState isEqualToString: @"CONNECTED"]) {
             [gMC addConnection:self];
             [self startCheckingIPAddressAfterConnected];
+            [NSThread detachNewThreadSelector: @selector(logNetworkStatusChecks) toTarget: self withObject: nil];
             [gTbDefaults setBool: YES forKey: [displayName stringByAppendingString: @"-lastConnectionSucceeded"]];
+
+            // Check if we connected while on a trusted WiFi network.
+            // This handles a race condition during wake from sleep: WiFi may reconnect
+            // to a trusted network after VPN connect was already initiated, and the
+            // trustedWiFiSSIDChanged: notification was missed because VPN was not yet CONNECTED.
+            if ([TrustedWiFiManager shouldPauseVPNForDisplayName: [self displayName]]) {
+                [self trustedWiFiSSIDChanged: nil];
+            }
         } else {
             [gMC addNonconnection: self];
         }
@@ -5549,10 +5878,14 @@ static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
     NSString * statusPref = [gTbDefaults stringForKey: @"connectionWindowDisplayCriteria"];
     if (   [statusPref isEqualToString: @"showWhenChanges"]
         || [newState isEqualToString: @"RECONNECTING"]  ) {
-        [self showStatusWindowForce: NO];
+        if (  ! [newState isEqualToString: @"TRUSTED_WIFI"]  ) {
+            [self showStatusWindowForce: NO];
+        }
     }
 
-    [statusScreen setStatus: newState forName: [self displayName] connectedSince: [self timeString]];
+    if (  ! [newState isEqualToString: @"TRUSTED_WIFI"]  ) {
+        [statusScreen setStatus: newState forName: [self displayName] connectedSince: [self timeString]];
+    }
 
     if (  showingStatusWindow  ) {
 
@@ -5707,7 +6040,9 @@ static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
         if (  [gTbDefaults boolForKey: @"doNotShowConnectAndDisconnectPrefixOnMenuItems"]  ) {
             commandString = @"%@%@";
         } else {
-            if (  ! [[connection state] isEqualToString:@"EXITING"]  ) {
+            if (  [[connection state] isEqualToString: @"TRUSTED_WIFI"]  ) {
+                commandString = NSLocalizedString(@"Paused %@%@", @"Menu item");
+            } else if (  ! [[connection state] isEqualToString:@"EXITING"]  ) {
                 commandString = NSLocalizedString(@"Disconnect %@%@", @"Menu item");
             } else {
                 commandString = NSLocalizedString(@"Connect %@%@", @"Menu item");

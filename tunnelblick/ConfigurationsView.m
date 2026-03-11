@@ -455,6 +455,13 @@ uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange {
 														   @" traffic to be routed through the VPN server as if this checkbox had been checked. </p>\n",
 														   @"HTML info for the 'Route all IPv4 traffic through the VPN' checkbox."))];
 	
+	[routeNoPullCheckbox
+	 setTitle: NSLocalizedString(@"Ignore server-pushed routes", @"Checkbox name")
+	 infoTitle: attributedStringFromHTML(NSLocalizedString(@"<p><strong>When checked</strong>, Tunnelblick will instruct OpenVPN to ignore routes pushed by the server (route-nopull)."
+														   @" A bypass route to the VPN server via net_gateway will be added automatically.</p>\n"
+														   @"<p><strong>When not checked</strong>, the server may push routes that change your routing table.</p>\n",
+														   @"HTML info for the 'Ignore server-pushed routes' checkbox."))];
+
 	[disableIpv6OnTunCheckbox
 	 setTitle: NSLocalizedString(@"Disable IPv6 unless the VPN server is accessed using IPv6", @"Checkbox name")
 	 infoTitle: attributedStringFromHTML(NSLocalizedString(@"<p><strong>When checked</strong>, IPv6 will be disabled unless the OpenVPN server is being accessed via an IPv6 address.</p>\n"
@@ -557,6 +564,7 @@ TBSYNTHESIZE_OBJECT_GET(retain, NSArrayController *,   setNameserverArrayControl
 
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            monitorNetworkForChangesCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            routeAllTrafficThroughVpnCheckbox)
+TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            routeNoPullCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            disableIpv6OnTunCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            disableSecondaryNetworkServicesCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            checkIPAddressAfterConnectOnAdvancedCheckbox)
@@ -582,5 +590,17 @@ TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          uponUnexpectedDisconnectR
 TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          uponUnexpectedDisconnectDisableNetworkAccessMenuItem)
 
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            advancedButton)
+
+-(NSButton *) trustedWiFiButton {
+	return trustedWiFiButton;
+}
+
+-(NSButton *) socksEnabledCheckbox {
+	return socksEnabledCheckbox;
+}
+
+-(NSTextField *) socksProxyField {
+	return socksProxyField;
+}
 
 @end

@@ -36,7 +36,7 @@
 #import "VPNConnection.h"
 
 #define NUMBER_OF_LINES_TO_KEEP_AT_START_OF_LOG 10
-#define NUMBER_OF_LINES_TO_KEEP_AS_TUNNELBLICK_ENTRIES_AT_START_OF_LOG 3
+#define NUMBER_OF_LINES_TO_KEEP_AS_TUNNELBLICK_ENTRIES_AT_START_OF_LOG 0
 
 extern NSFileManager  * gFileMgr;
 extern unsigned         gMaximumLogSize;
@@ -95,6 +95,8 @@ extern TunnelblickInfo * gTbInfo;
                     fromPosition:       (unsigned *)            positionPtr;
 
 -(void)         pruneLog;
+
+-(NSMutableString *) summarizePushReplyLines: (NSMutableString *) lines;
 
 @end
 
@@ -553,7 +555,12 @@ TBSYNTHESIZE_OBJECT_GET(retain, NSString *,         lastEntryTime)
 
     maximumOpenvpnLogSize              = [gTbDefaults unsignedLongLongForKey: @"maximumOpenvpnLogSize" default: 200000000 min: 1000000ull max: 1000000000000ull];
 
-    [self setOpenvpnLogPath: [self constructOpenvpnLogPath]];
+    NSString * newOpenvpnLogPath = [self constructOpenvpnLogPath];
+    if (  newOpenvpnLogPath && ! [newOpenvpnLogPath isEqualToString: openvpnLogPath]  ) {
+        // Log file changed (reconnection) — reset position to read from the beginning
+        openvpnLogPosition = 0;
+    }
+    [self setOpenvpnLogPath: newOpenvpnLogPath];
     [self setScriptLogPath:  [self constructScriptLogPath]];
 
     [self startLogMonitoringTimer];
@@ -1067,14 +1074,117 @@ TBSYNTHESIZE_OBJECT_GET(retain, NSString *,         lastEntryTime)
     }
     
     unsigned lengthOfLines = [linesToReturn length];
-    
+
     if (  lengthOfLines == 0  ) {
         return nil;
     }
-    
+
     *positionPtr += lengthOfLinesUsed;
-    
+
+    // Anti-flood: summarize PUSH_REPLY route messages
+    if (  [linesToReturn rangeOfString: @"PUSH_REPLY,"].location != NSNotFound  ) {
+        linesToReturn = [self summarizePushReplyLines: linesToReturn];
+    }
+
     return linesToReturn;
+}
+
+-(NSMutableString *) summarizePushReplyLines: (NSMutableString *) lines {
+
+    // Replaces verbose PUSH_REPLY route listings with a compact summary.
+    // Preserves non-route PUSH options (dhcp-option, redirect-gateway, etc.)
+    // and shows route counts grouped by gateway type.
+
+    NSArray * lineArray = [lines componentsSeparatedByString: @"\n"];
+    NSMutableString * result = [NSMutableString stringWithCapacity: 2000];
+    NSUInteger totalNetGatewayRoutes = 0;
+    NSUInteger totalVpnGatewayRoutes = 0;
+    NSMutableArray * nonRouteOptions = [NSMutableArray arrayWithCapacity: 20];
+    NSString * dateTimePrefix = nil;
+    BOOL hasPushReply = NO;
+
+    for (  NSString * oneLine in lineArray  ) {
+        if (  [oneLine length] == 0  ) {
+            continue;
+        }
+
+        NSRange pushReplyRange = [oneLine rangeOfString: @"PUSH_REPLY,"];
+        if (  pushReplyRange.location == NSNotFound  ) {
+            // Not a PUSH_REPLY line, keep as-is
+            [result appendString: oneLine];
+            [result appendString: @"\n"];
+            continue;
+        }
+
+        hasPushReply = YES;
+
+        // Extract date/time prefix from first PUSH_REPLY line
+        if (  dateTimePrefix == nil  ) {
+            NSRange pushMsgRange = [oneLine rangeOfString: @"PUSH: Received control message: '"];
+            if (  pushMsgRange.location != NSNotFound  ) {
+                dateTimePrefix = [oneLine substringToIndex: pushMsgRange.location];
+            } else {
+                dateTimePrefix = @"";
+            }
+        }
+
+        // Extract the PUSH_REPLY content (after 'PUSH_REPLY,')
+        NSString * pushContent = [oneLine substringFromIndex: pushReplyRange.location + pushReplyRange.length];
+        // Remove trailing quote and push-continuation marker
+        pushContent = [pushContent stringByReplacingOccurrencesOfString: @"'" withString: @""];
+
+        NSArray * options = [pushContent componentsSeparatedByString: @","];
+        for (  NSString * option in options  ) {
+            NSString * trimmed = [option stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+            if (  [trimmed length] == 0  ) {
+                continue;
+            }
+            if (  [trimmed hasPrefix: @"push-continuation"]  ) {
+                continue;
+            }
+            if (  [trimmed hasPrefix: @"route "]  ) {
+                if (  [trimmed hasSuffix: @"net_gateway"]  ) {
+                    totalNetGatewayRoutes++;
+                } else {
+                    totalVpnGatewayRoutes++;
+                }
+            } else {
+                // Non-route option (dhcp-option, redirect-gateway, etc.)
+                if (  ! [nonRouteOptions containsObject: trimmed]  ) {
+                    [nonRouteOptions addObject: trimmed];
+                }
+            }
+        }
+    }
+
+    if (  ! hasPushReply  ) {
+        return lines;
+    }
+
+    // Build summary
+    if (  [nonRouteOptions count] > 0  ) {
+        [result appendFormat: @"%sPUSH options: %@\n",
+            [dateTimePrefix UTF8String],
+            [nonRouteOptions componentsJoinedByString: @", "]];
+    }
+
+    NSMutableArray * routeParts = [NSMutableArray arrayWithCapacity: 2];
+    if (  totalNetGatewayRoutes > 0  ) {
+        [routeParts addObject: [NSString stringWithFormat: @"%lu via net_gateway (bypass VPN)", (unsigned long)totalNetGatewayRoutes]];
+    }
+    if (  totalVpnGatewayRoutes > 0  ) {
+        [routeParts addObject: [NSString stringWithFormat: @"%lu via vpn_gateway (through VPN)", (unsigned long)totalVpnGatewayRoutes]];
+    }
+
+    NSUInteger totalRoutes = totalNetGatewayRoutes + totalVpnGatewayRoutes;
+    if (  totalRoutes > 0  ) {
+        [result appendFormat: @"%sPUSH routes: %lu total (%@)\n",
+            [dateTimePrefix UTF8String],
+            (unsigned long)totalRoutes,
+            [routeParts componentsJoinedByString: @", "]];
+    }
+
+    return result;
 }
 
 -(NSUInteger) logDateTimeLength: (NSString *) line {
@@ -1685,19 +1795,30 @@ beforeTunnelblickEntries: (BOOL) beforeTunnelblickEntries
     NSString * logPathPrefix = [NSString stringWithFormat: @"%@/%@", L_AS_T_LOGS, logBase];
 
     NSString * filename;
+    NSString * newestPath = nil;
+    NSDate * newestDate = nil;
     NSDirectoryEnumerator * dirEnum = [gFileMgr enumeratorAtPath: L_AS_T_LOGS];
     while (  (filename = [dirEnum nextObject])  ) {
         [dirEnum skipDescendents];
-        NSString * oldFullPath = [L_AS_T_LOGS stringByAppendingPathComponent: filename];
-        if (  [oldFullPath hasPrefix: logPathPrefix]  ) {
+        NSString * fullPath = [L_AS_T_LOGS stringByAppendingPathComponent: filename];
+        if (  [fullPath hasPrefix: logPathPrefix]  ) {
             if (   [[filename pathExtension] isEqualToString: @"log"]
                 && [[[filename stringByDeletingPathExtension] pathExtension] isEqualToString: @"openvpn"]  ) {
-                return [[oldFullPath copy] autorelease];
+                NSDictionary * attrs = [gFileMgr attributesOfItemAtPath: fullPath error: nil];
+                NSDate * modDate = [attrs fileModificationDate];
+                if (  modDate  ) {
+                    if (  (newestDate == nil) || ([modDate compare: newestDate] == NSOrderedDescending)  ) {
+                        newestDate = modDate;
+                        newestPath = fullPath;
+                    }
+                } else if (  newestPath == nil  ) {
+                    newestPath = fullPath;
+                }
             }
         }
     }
-    
-    return nil;
+
+    return [[newestPath copy] autorelease];
 }
 
 @end

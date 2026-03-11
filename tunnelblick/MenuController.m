@@ -34,6 +34,7 @@
 #import "sharedRoutines.h"
 
 #import "AuthAgent.h"
+#import "StatusCheckController.h"
 #import "ConfigurationManager.h"
 #import "ConfigurationsView.h"
 #import "LeftNavItem.h"
@@ -53,6 +54,7 @@
 #import "TBUIUpdater.h"
 #import "TBUpdater.h"
 #import "TBUserDefaults.h"
+#import "TrustedWiFiManager.h"
 #import "UIHelper.h"
 #import "VPNConnection.h"
 #import "WarningNote.h"
@@ -2007,6 +2009,14 @@ static pthread_mutex_t myVPNMenuMutex = PTHREAD_MUTEX_INITIALIZER;
                                 && ( ! [gTbDefaults boolForKey:@"putVpnDetailsAtBottom"] ) );
     if (  showVpnDetailsAtTop  ) {
         [myVPNMenu addItem: vpnDetailsItem];
+
+        // Add "Network Status" menu item
+        NSMenuItem * networkStatusItem = [[[NSMenuItem alloc] init] autorelease];
+        [networkStatusItem setTitle: @"Network Status..."];
+        [networkStatusItem setTarget: self];
+        [networkStatusItem setAction: @selector(showNetworkStatus:)];
+        [myVPNMenu addItem: networkStatusItem];
+
         [myVPNMenu addItem: [NSMenuItem separatorItem]];
     }
 
@@ -2459,7 +2469,21 @@ static pthread_mutex_t myVPNMenuMutex = PTHREAD_MUTEX_INITIALIZER;
         unsigned nConnections = [[self connectionArray] count];
         NSString * myState;
         if (  nConnections == 0  ) {
-            myState = NSLocalizedString(@"No Active Connections", @"Status message");
+            // Check if any connection is paused for trusted WiFi
+            NSString * pausedName = nil;
+            NSEnumerator * e = [[self myVPNConnectionDictionary] objectEnumerator];
+            VPNConnection * conn;
+            while (  (conn = [e nextObject])  ) {
+                if (  [[conn state] isEqualToString: @"TRUSTED_WIFI"]  ) {
+                    pausedName = [conn displayName];
+                    break;
+                }
+            }
+            if (  pausedName  ) {
+                myState = [NSString stringWithFormat: NSLocalizedString(@"Paused - Trusted WiFi (%@)", @"Status message"), pausedName];
+            } else {
+                myState = NSLocalizedString(@"No Active Connections", @"Status message");
+            }
             [statusMenuItem setTitle: myState];
             return NO;
         } else if (  nConnections == 1) {
@@ -3309,6 +3333,13 @@ static pthread_mutex_t unloadKextsMutex = PTHREAD_MUTEX_INITIALIZER;
     [self activateIgnoringOtherApps];
 }
 
+-(IBAction) showNetworkStatus: (id) sender
+{
+    (void) sender;
+    [[StatusCheckController sharedController] showWindow];
+    [self activateIgnoringOtherApps];
+}
+
 -(void) createPreferencesWindow {
 
     if (  logScreen  ) {
@@ -3547,6 +3578,8 @@ static pthread_mutex_t cleanupMutex = PTHREAD_MUTEX_INITIALIZER;
         if     (  [reqState isEqualToString: @"CONNECTED"]  ) {
             if (  [curState isEqualToString: @"CONNECTED"]  ) {
                 atLeastOneIsConnected = TRUE;
+            } else if (  [curState isEqualToString: @"TRUSTED_WIFI"]  ) {
+                // Paused for trusted WiFi — don't animate, treat as idle
             } else if (  ! [curState isEqualToString: @"EXITING"]  ) {
                 newDisplayState = @"ANIMATED";
                 break;
@@ -4346,6 +4379,9 @@ static void signal_handler(int signalNumber)
     TBLog(@"DB-SU", @"applicationDidFinishLaunching: 05")
     [self updateIconImage];
     [self updateMenuAndDetailsWindowForceLeftNavigation: YES];
+
+    // Start monitoring WiFi changes for Trusted WiFi feature
+    [[TrustedWiFiManager sharedManager] startMonitoring];
 
     TBLog(@"DB-SU", @"applicationDidFinishLaunching: 06")
 

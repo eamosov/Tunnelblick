@@ -122,6 +122,9 @@ sign_app () {
 
         echo "Signing with signing identity '$SIGNING_IDENTITY': '$app_path'"
 
+        codesign_v_t_or "$app_path/Contents/MacOS/Tunnelblick.debug.dylib"
+        codesign_v_t_or "$app_path/Contents/Resources/sing-box"
+        codesign_v_t_or "$app_path/Contents/Resources/batch-routes"
         codesign_v_t_or "$app_path/Contents/Resources/atsystemstart"
         codesign_v_t_or "$app_path/Contents/Resources/TunnelblickUpdateHelper"
         codesign_v_t_or "$app_path/Contents/Resources/installer"

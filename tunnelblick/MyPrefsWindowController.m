@@ -47,6 +47,8 @@
 #import "TBUserDefaults.h"
 #import "TunnelblickInfo.h"
 #import "UIHelper.h"
+#import "TrustedWiFiManager.h"
+#import "TrustedWiFiTableHelper.h"
 #import "UtilitiesView.h"
 #import "VPNConnection.h"
 
@@ -85,6 +87,7 @@ extern TunnelblickInfo * gTbInfo;
 -(void) setupSetNameserver:           (VPNConnection *) connection;
 -(void) setupLoggingLevel:            (VPNConnection *) connection;
 -(void) setupRouteAllTraffic:         (VPNConnection *) connection;
+-(void) setupRouteNoPull:            (VPNConnection *) connection;
 -(void) setupCheckIPAddress:          (VPNConnection *) connection;
 -(void) setupDisableIpv6OnTun:                    (VPNConnection *) connection;
 -(void) setupPerConfigOpenvpnVersion: (VPNConnection *) connection;
@@ -416,17 +419,26 @@ static BOOL firstTimeShowingWindow = TRUE;
             NSString * leftFrameString  = [gTbDefaults stringForKey: @"detailsWindowLeftFrame"];
 			NSString * configurationsTabIdentifier         = [gTbDefaults stringForKey: @"detailsWindowConfigurationsTabIdentifier"];
             if (   mainFrameString != nil  ) {
-                
+
                 // Set the new frame for the window
-                [[self window] setMinSize: NSMakeSize(760.0, 452.0)]; // WINDOW size, not view size
+                NSSize minSize = NSMakeSize(760.0, 540.0);
+                [[self window] setMinSize: minSize]; // WINDOW size, not view size
                 [[self window] setMaxSize: NSMakeSize(FLT_MAX, FLT_MAX)];
                 NSRect mainFrame = NSRectFromString(mainFrameString);
+                // Enforce minimum size (setMinSize only constrains user resize, not setFrame:)
+                if (mainFrame.size.height < minSize.height) {
+                    mainFrame.origin.y -= (minSize.height - mainFrame.size.height);
+                    mainFrame.size.height = minSize.height;
+                }
+                if (mainFrame.size.width < minSize.width) {
+                    mainFrame.size.width = minSize.width;
+                }
                 [[self window] setFrame: mainFrame display: YES];     // display: YES so stretches properly
-                
+
                 // Resize all other views (so they are the same size as the current view (whose size changed if the window size changed)
                 [self resizeAllViewsExceptCurrent];
             }
-            
+
             if (  leftFrameString != nil  ) {
                 NSRect leftFrame = NSRectFromString(leftFrameString);
                 if (  leftFrame.size.width < LEFT_NAV_AREA_MINIMUM_SIZE  ) {
@@ -442,7 +454,7 @@ static BOOL firstTimeShowingWindow = TRUE;
                 [v setFrame: narrowLeftFrame];
                 [v setFrame: leftFrame];
             }
-			
+
 			if (  configurationsTabIdentifier  ) {
 				[[configurationsPrefsView configurationsTabView] selectTabViewItemWithIdentifier: configurationsTabIdentifier];
 			}
@@ -474,7 +486,10 @@ static BOOL firstTimeShowingWindow = TRUE;
 -(void) windowWillClose:(NSNotification *)notification
 {
 	(void) notification;
-	
+
+    // Commit any in-progress text field editing (e.g. SOCKS proxy field)
+    [[self window] endEditingFor: nil];
+
     [self lockTheLockIcon];
     
     if (  currentViewName  ) {
@@ -788,6 +803,16 @@ static BOOL firstTimeShowingWindow = TRUE;
     
     [self setupPerConfigurationCheckbox: [configurationsPrefsView routeAllTrafficThroughVpnCheckbox]
                                     key: @"-routeAllTrafficThroughVpn"
+                               inverted: NO
+                              defaultTo: NO];
+}
+
+-(void) setupRouteNoPull: (VPNConnection *) connection
+{
+    (void) connection;
+
+    [self setupPerConfigurationCheckbox: [configurationsPrefsView routeNoPullCheckbox]
+                                    key: @"-routeNoPull"
                                inverted: NO
                               defaultTo: NO];
 }
@@ -1335,6 +1360,7 @@ static BOOL firstTimeShowingWindow = TRUE;
         
 		[self setupNetworkMonitoring:					connection];
 		[self setupRouteAllTraffic:						connection];
+		[self setupRouteNoPull:							connection];
 		[self setupUponDisconnectPopUpButton:			connection];
 		[self setupUponUnexpectedDisconnectPopUpButton:	connection];
         [self setupDisableIpv6OnTun:					connection];
@@ -1342,6 +1368,7 @@ static BOOL firstTimeShowingWindow = TRUE;
         [self setupDisableSecondaryNetworkServices:     connection];
 
         [[configurationsPrefsView advancedButton] setEnabled: ! [gTbDefaults boolForKey: @"disableAdvancedButton"]];
+        [self setupSocksProxyControls];
         [settingsSheetWindowController            setupSettingsFromPreferences];
         
     } else {
@@ -2277,6 +2304,12 @@ static BOOL firstTimeShowingWindow = TRUE;
                                                                                    inverted: NO];
 }
 
+-(IBAction) routeNoPullCheckboxWasClicked: (NSButton *) sender {
+    [gMC setBooleanPreferenceForSelectedConnectionsWithKey: @"-routeNoPull"
+                                                        to: ([sender state] == NSOnState)
+                                                  inverted: NO];
+}
+
 -(IBAction) checkIPAddressAfterConnectOnAdvancedCheckboxWasClicked: (NSButton *) sender
 {
     [gMC setBooleanPreferenceForSelectedConnectionsWithKey: @"-notOKToCheckThatIPAddressDidNotChangeAfterConnection"
@@ -2326,8 +2359,221 @@ static BOOL firstTimeShowingWindow = TRUE;
     }
 }
 
+-(IBAction) trustedWiFiButtonWasClicked: (id) sender
+{
+    (void) sender;
+
+    VPNConnection * connection = [self selectedConnection];
+    if (  ! connection  ) {
+        NSLog(@"trustedWiFiButtonWasClicked but no configuration selected");
+        return;
+    }
+
+    NSString * displayName = [connection displayName];
+
+    // Request location authorization for SSID access
+    [TrustedWiFiManager requestLocationAuthorization];
+
+    // Create the panel
+    NSPanel * panel = [[NSPanel alloc] initWithContentRect: NSMakeRect(0, 0, 400, 340)
+                                                 styleMask: (NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
+                                                   backing: NSBackingStoreBuffered
+                                                     defer: YES];
+    [panel setTitle: [NSString stringWithFormat: @"Trusted WiFi - %@", displayName]];
+
+    NSView * contentView = [panel contentView];
+
+    // Label
+    NSTextField * label = [[[NSTextField alloc] initWithFrame: NSMakeRect(20, 300, 360, 20)] autorelease];
+    [label setStringValue: @"WiFi networks where VPN will be paused:"];
+    [label setBezeled: NO];
+    [label setDrawsBackground: NO];
+    [label setEditable: NO];
+    [label setSelectable: NO];
+    [contentView addSubview: label];
+
+    // Scroll view with table
+    NSScrollView * scrollView = [[[NSScrollView alloc] initWithFrame: NSMakeRect(20, 80, 360, 215)] autorelease];
+    [scrollView setHasVerticalScroller: YES];
+    [scrollView setBorderType: NSBezelBorder];
+
+    NSTableView * tableView = [[[NSTableView alloc] initWithFrame: NSMakeRect(0, 0, 360, 215)] autorelease];
+
+    NSTableColumn * column = [[[NSTableColumn alloc] initWithIdentifier: @"ssid"] autorelease];
+    [column setWidth: 340];
+    [[column headerCell] setStringValue: @"SSID"];
+    [tableView addTableColumn: column];
+    [tableView setHeaderView: nil];
+
+    // Store trusted SSIDs in an array for the table data source
+    NSMutableArray * ssidList = [NSMutableArray arrayWithArray:
+                                 ([TrustedWiFiManager trustedWiFiListForDisplayName: displayName]
+                                  ? [TrustedWiFiManager trustedWiFiListForDisplayName: displayName]
+                                  : [NSArray array])];
+
+    // Use a simple helper object for table data source
+    TrustedWiFiTableHelper * helper = [[TrustedWiFiTableHelper alloc] initWithSSIDs: ssidList displayName: displayName];
+    [tableView setDataSource: helper];
+    [tableView setDelegate: helper];
+
+    [scrollView setDocumentView: tableView];
+    [contentView addSubview: scrollView];
+
+    // "Add Current WiFi" button
+    NSString * currentSSID = [TrustedWiFiManager currentWiFiSSID];
+    NSString * addCurrentTitle = currentSSID
+        ? [NSString stringWithFormat: @"Add Current (%@)", currentSSID]
+        : @"Add Current (no WiFi)";
+
+    NSButton * addCurrentButton = [[[NSButton alloc] initWithFrame: NSMakeRect(20, 45, 200, 28)] autorelease];
+    [addCurrentButton setBezelStyle: NSBezelStyleRounded];
+    [addCurrentButton setTitle: addCurrentTitle];
+    [addCurrentButton setEnabled: (currentSSID != nil)];
+    [addCurrentButton setTarget: helper];
+    [addCurrentButton setAction: @selector(addCurrentWiFi:)];
+    [contentView addSubview: addCurrentButton];
+
+    // Text field for manual SSID entry
+    NSTextField * ssidField = [[[NSTextField alloc] initWithFrame: NSMakeRect(20, 15, 200, 24)] autorelease];
+    [ssidField setPlaceholderString: @"Enter SSID manually"];
+    [contentView addSubview: ssidField];
+
+    // "Add" button for manual entry
+    NSButton * addButton = [[[NSButton alloc] initWithFrame: NSMakeRect(225, 13, 60, 28)] autorelease];
+    [addButton setBezelStyle: NSBezelStyleRounded];
+    [addButton setTitle: @"Add"];
+    [addButton setTarget: helper];
+    [addButton setAction: @selector(addManualSSID:)];
+    [contentView addSubview: addButton];
+
+    // "Remove" button
+    NSButton * removeButton = [[[NSButton alloc] initWithFrame: NSMakeRect(290, 13, 80, 28)] autorelease];
+    [removeButton setBezelStyle: NSBezelStyleRounded];
+    [removeButton setTitle: @"Remove"];
+    [removeButton setTarget: helper];
+    [removeButton setAction: @selector(removeSelectedSSID:)];
+    [contentView addSubview: removeButton];
+
+    // Store references in helper
+    [helper setTableView: tableView];
+    [helper setSsidField: ssidField];
+
+    // Set helper as window delegate to handle close button
+    [panel setDelegate: helper];
+
+    [panel center];
+    [NSApp runModalForWindow: panel];
+
+    [panel setDelegate: nil];
+    [helper release];
+    [panel release];
+}
+
+
+-(IBAction) socksEnabledCheckboxWasClicked: (id) sender {
+
+    VPNConnection * connection = [self selectedConnection];
+    if (  ! connection  ) return;
+
+    NSString * displayName = [connection displayName];
+    NSString * key = [displayName stringByAppendingString: @"-singBoxSocksEnabled"];
+    [gTbDefaults setObject: [NSNumber numberWithBool: ([sender state] == NSOnState)] forKey: key];
+
+    // Enable/disable the text field
+    ConfigurationsView * cv = configurationsPrefsView;
+    [[cv socksProxyField] setEnabled: ([sender state] == NSOnState)];
+}
+
+-(void) saveSocksProxyFromField: (NSTextField *) field {
+
+    VPNConnection * connection = [self selectedConnection];
+    if (  ! connection  ) return;
+
+    NSString * displayName = [connection displayName];
+    NSString * value = [[field stringValue] stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    NSArray * parts = [value componentsSeparatedByCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+    NSMutableArray * nonEmpty = [NSMutableArray array];
+    for ( NSString * p in parts ) {
+        if ( [p length] > 0 ) [nonEmpty addObject: p];
+    }
+
+    NSString * prefix = [displayName stringByAppendingString: @"-"];
+
+    if ( [nonEmpty count] >= 2 ) {
+        [gTbDefaults setObject: [nonEmpty objectAtIndex: 0] forKey: [prefix stringByAppendingString: @"singBoxSocksHost"]];
+        [gTbDefaults setObject: [nonEmpty objectAtIndex: 1] forKey: [prefix stringByAppendingString: @"singBoxSocksPort"]];
+    } else {
+        [gTbDefaults removeObjectForKey: [prefix stringByAppendingString: @"singBoxSocksHost"]];
+        [gTbDefaults removeObjectForKey: [prefix stringByAppendingString: @"singBoxSocksPort"]];
+    }
+
+    if ( [nonEmpty count] >= 3 ) {
+        [gTbDefaults setObject: [nonEmpty objectAtIndex: 2] forKey: [prefix stringByAppendingString: @"singBoxSocksUsername"]];
+    } else {
+        [gTbDefaults removeObjectForKey: [prefix stringByAppendingString: @"singBoxSocksUsername"]];
+    }
+
+    if ( [nonEmpty count] >= 4 ) {
+        [gTbDefaults setObject: [nonEmpty objectAtIndex: 3] forKey: [prefix stringByAppendingString: @"singBoxSocksPassword"]];
+    } else {
+        [gTbDefaults removeObjectForKey: [prefix stringByAppendingString: @"singBoxSocksPassword"]];
+    }
+}
+
+-(IBAction) socksProxyFieldDidChange: (id) sender {
+    [self saveSocksProxyFromField: sender];
+}
+
+-(void) controlTextDidEndEditing: (NSNotification *) notification {
+    NSTextField * field = [notification object];
+    if (  field == [configurationsPrefsView socksProxyField]  ) {
+        [self saveSocksProxyFromField: field];
+    }
+}
+
+-(void) setupSocksProxyControls {
+
+    VPNConnection * connection = [self selectedConnection];
+    ConfigurationsView * cv = configurationsPrefsView;
+
+    if (  ! connection  ) {
+        [[cv socksEnabledCheckbox] setState: NSOffState];
+        [[cv socksEnabledCheckbox] setEnabled: NO];
+        [[cv socksProxyField] setStringValue: @""];
+        [[cv socksProxyField] setEnabled: NO];
+        return;
+    }
+
+    NSString * displayName = [connection displayName];
+    NSString * prefix = [displayName stringByAppendingString: @"-"];
+
+    BOOL enabled = [gTbDefaults boolForKey: [prefix stringByAppendingString: @"singBoxSocksEnabled"]];
+    [[cv socksEnabledCheckbox] setState: enabled ? NSOnState : NSOffState];
+    [[cv socksEnabledCheckbox] setEnabled: YES];
+    [[cv socksProxyField] setEnabled: enabled];
+    [[cv socksProxyField] setDelegate: self];
+
+    // Build display string from stored values
+    NSString * host = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxSocksHost"]];
+    NSString * port = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxSocksPort"]];
+    NSString * user = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxSocksUsername"]];
+    NSString * pass = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxSocksPassword"]];
+
+    NSMutableString * display = [NSMutableString string];
+    if ( host && port ) {
+        [display appendFormat: @"%@ %@", host, port];
+        if ( user && [user length] > 0 ) {
+            [display appendFormat: @" %@", user];
+            if ( pass && [pass length] > 0 ) {
+                [display appendFormat: @" %@", pass];
+            }
+        }
+    }
+    [[cv socksProxyField] setStringValue: display];
+}
+
 -(void) rawSetWhenToConnect {
-    
+
     VPNConnection * connection = [self selectedConnection];
     if (  ! connection  ) {
         return;

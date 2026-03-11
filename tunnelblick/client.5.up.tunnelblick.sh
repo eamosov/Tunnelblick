@@ -1329,6 +1329,21 @@ sed -e 's/^[[:space:]]*[[:digit:]]* : //g' | tr '\n' ' '
 		quit
 EOF
 
+	# Set up split DNS for corporate domains if CORP_DNS_DOMAINS is defined
+	# This creates a supplemental resolver that routes specified domains through the original (pre-VPN) DNS
+	if [ -n "${CORP_DNS_DOMAINS:-}" ] && [ -n "${CUR_DNS_SA}" ] ; then
+		logMessage "Setting up split DNS for corporate domains: ${CORP_DNS_DOMAINS}"
+		logMessage "Corporate domains will use original DNS: ${CUR_DNS_SA}"
+		scutil <<-EOF > /dev/null
+			open
+			d.init
+			d.add ServerAddresses * ${CUR_DNS_SA}
+			d.add SupplementalMatchDomains * ${CORP_DNS_DOMAINS}
+			set State:/Network/Service/openvpn-corp-dns/DNS
+			quit
+EOF
+	fi
+
 	logDebugMessage ''
 	logDebugMessage "Pause for configuration changes to be propagated to State:/Network/Global/DNS and .../SMB"
 	sleep 1
@@ -1458,6 +1473,90 @@ sed -e 's/^[[:space:]]*[[:digit:]]* : //g' | tr '\n' ' '
     logChange "${SKP_SMB}${SKP_SMB_WA}" "SMB WINSAddresses"     "${FIN_SMB_WA}"   "${CUR_SMB_WA}"
 
 	logDnsInfo "${MAN_DNS_SA}" "${FIN_DNS_SA}"
+
+	# Log structured DNS summary
+	logMessage "--- DNS Configuration Summary ---"
+	logMessage "  Original DNS (before VPN): ${CUR_DNS_SA:-(none)}"
+	logMessage "  VPN DNS (from OpenVPN):    ${DYN_DNS_SA:-(none)}"
+	logMessage "  Active DNS (primary):      ${FIN_DNS_SA:-(not changed)}"
+	logMessage "  Search domains:            ${FIN_DNS_SD:-(not changed)}"
+	logMessage "  Domain name:               ${FIN_DNS_DN:-(not changed)}"
+	if [ -n "${CORP_DNS_DOMAINS:-}" ] ; then
+		logMessage "  Split DNS: corporate domains via original DNS"
+		logMessage "    Corporate domains:       ${CORP_DNS_DOMAINS}"
+		logMessage "    Corporate DNS server:    ${CUR_DNS_SA}"
+	fi
+	# Parse active resolvers from scutil --dns
+	logMessage "  Active resolvers (scutil --dns):"
+	local resolver_num=""
+	local resolver_ns=""
+	local resolver_domain=""
+	local resolver_search=""
+	local in_scoped="false"
+	while IFS= read -r line ; do
+		case "$line" in
+			*"for scoped queries"*)
+				in_scoped="true"
+				;;
+			resolver\ \#*)
+				# Print previous resolver if any
+				if [ -n "$resolver_num" ] && [ -n "$resolver_ns" ] && [ "$in_scoped" = "false" ] ; then
+					local domains_str=""
+					if [ -n "$resolver_domain" ] ; then
+						domains_str="domain: ${resolver_domain}"
+					elif [ -n "$resolver_search" ] ; then
+						domains_str="search: ${resolver_search}"
+					else
+						domains_str="all domains (default)"
+					fi
+					logMessage "    #${resolver_num}: ${resolver_ns} -> ${domains_str}"
+				fi
+				resolver_num="${line##resolver \#}"
+				resolver_ns=""
+				resolver_domain=""
+				resolver_search=""
+				;;
+			*nameserver*)
+				local ns="${line##*: }"
+				if [ -z "$resolver_ns" ] ; then
+					resolver_ns="$ns"
+				else
+					resolver_ns="${resolver_ns}, ${ns}"
+				fi
+				;;
+			*"  domain "*)
+				resolver_domain="${line##*: }"
+				;;
+			*"search domain"*)
+				local sd="${line##*: }"
+				if [ -z "$resolver_search" ] ; then
+					resolver_search="$sd"
+				else
+					resolver_search="${resolver_search}, ${sd}"
+				fi
+				;;
+		esac
+	done <<< "$scutil_dns"
+	# Print last resolver
+	if [ -n "$resolver_num" ] && [ -n "$resolver_ns" ] && [ "$in_scoped" = "false" ] ; then
+		local domains_str=""
+		if [ -n "$resolver_domain" ] ; then
+			domains_str="domain: ${resolver_domain}"
+		elif [ -n "$resolver_search" ] ; then
+			domains_str="search: ${resolver_search}"
+		else
+			domains_str="all domains (default)"
+		fi
+		logMessage "    #${resolver_num}: ${resolver_ns} -> ${domains_str}"
+	fi
+	if [ -e /etc/resolv.conf ] ; then
+		set +e
+			local resolv_ns
+			resolv_ns="$( grep '^nameserver' /etc/resolv.conf | awk '{print $2}' | tr '\n' ' ' )"
+		set -e
+		logMessage "  /etc/resolv.conf:          ${resolv_ns:-(empty)}"
+	fi
+	logMessage "--- End DNS Summary ---"
 
 	flushDNSCache
 
@@ -1835,16 +1934,21 @@ logDnsInfo() {
 					if [ "${serverIsKnown}" != "" ] ; then
 						knownDnsServerNotFound="false"
 					else
-						unknownDnsServerFound="true"
+						# Skip warning if DNS server is the VPN gateway
+						if [ -n "${route_vpn_gateway:-}" ] && [ "${server}" = "${route_vpn_gateway}" ] ; then
+							knownDnsServerNotFound="false"
+						else
+							unknownDnsServerFound="true"
+						fi
 					fi
 				done
-				if ${knownDnsServerNotFound} ; then
+				if ${knownDnsServerNotFound} && ${unknownDnsServerFound} ; then
 					logMessage "NOTE: The DNS servers do not include any free public DNS servers known to Tunnelblick. This may cause DNS queries to fail or be intercepted or falsified even if they are directed through the VPN. Specify only known public DNS servers or DNS servers located on the VPN network to avoid such problems."
 				else
 					if ${unknownDnsServerFound} ; then
 						logMessage "NOTE: The DNS servers include one or more free public DNS servers known to Tunnelblick and one or more DNS servers not known to Tunnelblick. If used, the DNS servers not known to Tunnelblick may cause DNS queries to fail or be intercepted or falsified even if they are directed through the VPN. Specify only known public DNS servers or DNS servers located on the VPN network to avoid such problems."
 					else
-						logMessage "The DNS servers include only free public DNS servers known to Tunnelblick."
+						logMessage "The DNS servers include only known public DNS servers or the VPN gateway."
 					fi
 				fi
 			fi

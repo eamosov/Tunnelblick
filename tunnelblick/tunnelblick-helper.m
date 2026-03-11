@@ -30,6 +30,10 @@
 #import <sys/sysctl.h>
 #import <sys/types.h>
 #import <sys/xattr.h>
+#import <sys/socket.h>
+#import <netinet/in.h>
+#import <arpa/inet.h>
+#import <netdb.h>
 #import <SystemConfiguration/SystemConfiguration.h>
 
 #import "defines.h"
@@ -2519,7 +2523,8 @@ static int startVPN(NSString * configFile,
                     unsigned   bitMask,
                     NSString * leasewatchOptions,
                     NSString * openvpnVersion,
-                    NSString * managementPassword) {
+                    NSString * managementPassword,
+                    unsigned   singBoxPort) {
 
     // Tries to start an openvpn connection (up to ten times if not starting from GUI).
     // Returns OPENVPNSTART_COULD_NOT_START_OPENVPN (having output a message to stderr) if any other error occurs
@@ -2691,9 +2696,173 @@ static int startVPN(NSString * configFile,
         [arguments addObject: verbString];
     }
 
+    // Strip sb_*/tb_ directives from config (OpenVPN doesn't understand them).
+    // If sing-box port > 0, also redirect 'remote' to local proxy and add route exclusion.
+    // Supports both bare "sb_key value" and "setenv sb_key value" / "setenv tb_key value" formats.
+    NSString * effectiveConfigPath = gConfigPath;
+    NSString * singBoxTempConfigPath = nil;
+    NSString * configOriginalRemoteHost = nil;  // Original 'remote' host from config (before any sing-box rewrite)
+    {
+        becomeRoot(@"read config for sb_*/tb_ stripping");
+        NSError * readError = nil;
+        NSString * configContents = [NSString stringWithContentsOfFile: gConfigPath encoding: NSUTF8StringEncoding error: &readError];
+        stopBeingRoot();
+
+        if ( configContents ) {
+            // Extract original 'remote' host from config (before any sing-box rewrite)
+            {
+                NSArray * remoteCheckLines = [configContents componentsSeparatedByString: @"\n"];
+                for ( NSString * rl in remoteCheckLines ) {
+                    NSString * rt = [rl stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                    if ( [rt hasPrefix: @"remote "] ) {
+                        NSArray * rParts = [rt componentsSeparatedByCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+                        NSMutableArray * rNonEmpty = [NSMutableArray array];
+                        for ( NSString * rp in rParts ) { if ( [rp length] > 0 ) [rNonEmpty addObject: rp]; }
+                        if ( [rNonEmpty count] >= 2 ) {
+                            configOriginalRemoteHost = [rNonEmpty objectAtIndex: 1];
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Check if config has any sb_*/tb_ directives (bare or setenv)
+            BOOL hasTbDirectives = NO;
+            NSArray * checkLines = [configContents componentsSeparatedByString: @"\n"];
+            for ( NSString * cl in checkLines ) {
+                NSString * ct = [cl stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                if ( [ct hasPrefix: @"sb_"] ) { hasTbDirectives = YES; break; }
+                if ( [ct hasPrefix: @"setenv "] || [ct hasPrefix: @"setenv-safe "] ) {
+                    NSArray * pp = [ct componentsSeparatedByCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+                    NSMutableArray * ne2 = [NSMutableArray array];
+                    for ( NSString * p2 in pp ) { if ( [p2 length] > 0 ) [ne2 addObject: p2]; }
+                    if ( [ne2 count] >= 2 ) {
+                        NSString * envName2 = [ne2 objectAtIndex: 1];
+                        if ( [envName2 hasPrefix: @"sb_"] || [envName2 hasPrefix: @"tb_"] ) hasTbDirectives = YES;
+                    }
+                    if ( hasTbDirectives ) break;
+                }
+            }
+
+            if ( hasTbDirectives || singBoxPort > 0 ) {
+                NSMutableArray * resultLines = [NSMutableArray array];
+                NSArray * lines = [configContents componentsSeparatedByString: @"\n"];
+                BOOL remoteReplaced = NO;
+                NSString * originalRemoteHost = nil;
+                NSString * sbOverrideAddress = nil;
+
+                for ( NSString * line in lines ) {
+                    NSString * trimmed = [line stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceAndNewlineCharacterSet]];
+
+                    // Extract sb_override_address if present (the real VLESS server address)
+                    // Supports both "sb_override_address X" and "setenv sb_override_address X"
+                    {
+                        NSString * checkKey = nil;
+                        NSString * checkVal = nil;
+                        if ( [trimmed hasPrefix: @"sb_override_address "] ) {
+                            NSArray * pp = [trimmed componentsSeparatedByCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+                            if ( [pp count] >= 2 ) checkVal = [pp objectAtIndex: 1];
+                        } else if ( [trimmed hasPrefix: @"setenv "] || [trimmed hasPrefix: @"setenv-safe "] ) {
+                            NSArray * pp = [trimmed componentsSeparatedByCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+                            NSMutableArray * ne = [NSMutableArray array];
+                            for ( NSString * p in pp ) { if ( [p length] > 0 ) [ne addObject: p]; }
+                            if ( [ne count] >= 3 && [[ne objectAtIndex: 1] isEqualToString: @"sb_override_address"] ) {
+                                checkVal = [ne objectAtIndex: 2];
+                            }
+                        }
+                        if ( checkVal ) sbOverrideAddress = checkVal;
+                    }
+
+                    // Always remove sb_*/tb_ directives (bare and setenv)
+                    if ( [trimmed hasPrefix: @"sb_"] ) {
+                        continue;
+                    }
+                    if ( [trimmed hasPrefix: @"setenv "] || [trimmed hasPrefix: @"setenv-safe "] ) {
+                        NSArray * pp = [trimmed componentsSeparatedByCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+                        NSMutableArray * ne = [NSMutableArray array];
+                        for ( NSString * p in pp ) { if ( [p length] > 0 ) [ne addObject: p]; }
+                        if ( [ne count] >= 2 ) {
+                            NSString * envName = [ne objectAtIndex: 1];
+                            if ( [envName hasPrefix: @"sb_"] || [envName hasPrefix: @"tb_"] ) {
+                                continue;
+                            }
+                        }
+                    }
+
+                    // Replace first 'remote' directive to point to local sing-box (only when sing-box is active)
+                    if ( singBoxPort > 0 && [trimmed hasPrefix: @"remote "] && ! remoteReplaced ) {
+                        NSArray * parts = [trimmed componentsSeparatedByCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+                        NSMutableArray * nonEmpty = [NSMutableArray array];
+                        for ( NSString * p in parts ) {
+                            if ( [p length] > 0 ) [nonEmpty addObject: p];
+                        }
+                        if ( [nonEmpty count] >= 2 ) {
+                            originalRemoteHost = [nonEmpty objectAtIndex: 1];
+                        }
+                        [resultLines addObject: [NSString stringWithFormat: @"remote 127.0.0.1 %u tcp-client", singBoxPort]];
+                        remoteReplaced = YES;
+                        continue;
+                    }
+
+                    // Replace 'proto' directive to force TCP (only when sing-box is active)
+                    if ( singBoxPort > 0 && [trimmed hasPrefix: @"proto "] ) {
+                        [resultLines addObject: @"proto tcp"];
+                        continue;
+                    }
+
+                    [resultLines addObject: line];
+                }
+
+                // Add route exclusion for the VLESS server IP (only when sing-box is active)
+                if ( singBoxPort > 0 ) {
+                    NSString * vlessServerHost = sbOverrideAddress ? sbOverrideAddress : originalRemoteHost;
+                    if ( vlessServerHost && [vlessServerHost length] > 0 ) {
+                        struct addrinfo hints, *res;
+                        memset(&hints, 0, sizeof(hints));
+                        hints.ai_family = AF_INET;
+                        hints.ai_socktype = SOCK_STREAM;
+                        int resolveStatus = getaddrinfo([vlessServerHost UTF8String], NULL, &hints, &res);
+                        if ( resolveStatus == 0 && res ) {
+                            struct sockaddr_in * addr = (struct sockaddr_in *) res->ai_addr;
+                            char ipStr[INET_ADDRSTRLEN];
+                            inet_ntop(AF_INET, &(addr->sin_addr), ipStr, INET_ADDRSTRLEN);
+                            NSString * vlessServerIP = [NSString stringWithUTF8String: ipStr];
+                            [resultLines addObject: [NSString stringWithFormat: @"route %@ 255.255.255.255 net_gateway", vlessServerIP]];
+                            fprintf(stderr, "Sing-Box: Added route exclusion for VLESS server %s (%s)\n",
+                                    [vlessServerHost UTF8String], ipStr);
+                            freeaddrinfo(res);
+                        } else {
+                            fprintf(stderr, "Sing-Box: Warning: Could not resolve VLESS server '%s' for route exclusion\n",
+                                    [vlessServerHost UTF8String]);
+                        }
+                    }
+                }
+
+                NSString * modifiedConfig = [resultLines componentsJoinedByString: @"\n"];
+                unsigned tempId = singBoxPort > 0 ? singBoxPort : (unsigned)getpid();
+                singBoxTempConfigPath = [NSString stringWithFormat: @"/tmp/tunnelblick_sb_%u.ovpn", tempId];
+                NSError * writeError = nil;
+                if ( [modifiedConfig writeToFile: singBoxTempConfigPath atomically: YES encoding: NSUTF8StringEncoding error: &writeError] ) {
+                    effectiveConfigPath = singBoxTempConfigPath;
+                    if ( singBoxPort > 0 ) {
+                        fprintf(stderr, "Sing-Box: Using modified config at %s (remote redirected to 127.0.0.1:%u)\n",
+                                [singBoxTempConfigPath UTF8String], singBoxPort);
+                    } else {
+                        fprintf(stderr, "Stripped sb_* directives, using config at %s\n",
+                                [singBoxTempConfigPath UTF8String]);
+                    }
+                } else {
+                    fprintf(stderr, "Failed to write modified config: %s\n", [[writeError description] UTF8String]);
+                }
+            }
+        } else if ( singBoxPort > 0 ) {
+            fprintf(stderr, "Sing-Box: Failed to read config file: %s\n", [[readError description] UTF8String]);
+        }
+    }
+
     // Process options in the configuration file
     [arguments addObject: @"--config"];
-    [arguments addObject: gConfigPath];
+    [arguments addObject: effectiveConfigPath];
 
     // Set the TUNNELBLICK_CONFIG_FOLDER environment variable to the path of the folder containing the configuration file
     [arguments addObject: @"--setenv"];
@@ -2729,10 +2898,56 @@ static int startVPN(NSString * configFile,
         [arguments addObject: @"--management-hold"];
     }
 
-    if (  (bitMask & OPENVPNSTART_USE_REDIRECT_GATEWAY_DEF1) != 0  ) {
+    if (  (bitMask & OPENVPNSTART_USE_ROUTE_NOPULL) != 0  ) {
+        [arguments addObject: @"--route-nopull"];
+
+        // When route-nopull is active, --redirect-gateway def1 may not work because
+        // OpenVPN can filter its internally-generated routes. Use explicit --route instead.
+        if (  (bitMask & OPENVPNSTART_USE_REDIRECT_GATEWAY_DEF1) != 0  ) {
+            [arguments addObject: @"--route"];
+            [arguments addObject: @"0.0.0.0"];
+            [arguments addObject: @"128.0.0.0"];
+            [arguments addObject: @"vpn_gateway"];
+            [arguments addObject: @"--route"];
+            [arguments addObject: @"128.0.0.0"];
+            [arguments addObject: @"128.0.0.0"];
+            [arguments addObject: @"vpn_gateway"];
+            fprintf(stderr, "route-nopull: Using explicit routes instead of redirect-gateway def1\n");
+        }
+
+        // Add explicit route to VPN server via net_gateway so the tunnel itself remains reachable
+        if ( configOriginalRemoteHost && [configOriginalRemoteHost length] > 0 ) {
+            struct addrinfo hints, *res;
+            memset(&hints, 0, sizeof(hints));
+            hints.ai_family = AF_INET;
+            hints.ai_socktype = SOCK_STREAM;
+            int resolveStatus = getaddrinfo([configOriginalRemoteHost UTF8String], NULL, &hints, &res);
+            if ( resolveStatus == 0 && res ) {
+                struct sockaddr_in * addr = (struct sockaddr_in *) res->ai_addr;
+                char ipStr[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &(addr->sin_addr), ipStr, INET_ADDRSTRLEN);
+                [arguments addObject: @"--route"];
+                [arguments addObject: [NSString stringWithUTF8String: ipStr]];
+                [arguments addObject: @"255.255.255.255"];
+                [arguments addObject: @"net_gateway"];
+                fprintf(stderr, "route-nopull: Added bypass route for VPN server %s (%s)\n",
+                        [configOriginalRemoteHost UTF8String], ipStr);
+                freeaddrinfo(res);
+            } else {
+                fprintf(stderr, "route-nopull: Warning: Could not resolve VPN server '%s' for bypass route\n",
+                        [configOriginalRemoteHost UTF8String]);
+            }
+        }
+    } else if (  (bitMask & OPENVPNSTART_USE_REDIRECT_GATEWAY_DEF1) != 0  ) {
         [arguments addObject: @"--redirect-gateway"];
         [arguments addObject: @"def1"];
     }
+
+    // Use batch-routes tool for fast route addition via PF_ROUTE socket
+    [arguments addObject: @"--route-noexec"];
+    [arguments addObject: @"--setenv"];
+    [arguments addObject: @"TUNNELBLICK_BATCH_ROUTES"];
+    [arguments addObject: [gResourcesPath stringByAppendingPathComponent: @"batch-routes"]];
 
     if( ! skipScrSec ) {        // permissions must allow us to call the up and down scripts or scripts defined in config
         [arguments addObject: @"--script-security"];
@@ -3782,6 +3997,8 @@ int main(int argc, char * argv[]) {
                 if (  (argc >  9) && (strlen(argv[ 9]) < 16)                          ) leasewatchOptions = [NSString stringWithUTF8String: argv[9]];
                 if (  (argc > 10) && (strlen(argv[10]) < 128)                         ) openvpnVersion    = [NSString stringWithUTF8String: argv[10]];
                 if (  (argc > 11) && (strlen(argv[11]) < 128)                         ) managementPassword = [NSString stringWithUTF8String: argv[11]];
+                unsigned singBoxPort = 0;
+                if (  (argc > 12) && (strlen(argv[12]) < 6)                           ) singBoxPort = cvt_atou(argv[12], @"singBoxPort");
 
                 validateConfigName(configFile);
                 validatePort(port);
@@ -3831,7 +4048,8 @@ int main(int argc, char * argv[]) {
                                        bitMask,
                                        leasewatchOptions,
                                        openvpnVersion,
-                                       managementPassword);
+                                       managementPassword,
+                                       singBoxPort);
 
                     if (   (retCode == 0)               // If succeeded, return indicating that success
                         || ((bitMask & OPENVPNSTART_NOT_WHEN_COMPUTER_STARTS) != 0)  ) {// If failed and are using the GUI, return the failure

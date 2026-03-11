@@ -26,6 +26,7 @@
 @class AuthAgent;
 @class LogDisplay;
 @class NetSocket;
+@class SingBoxManager;
 @class StatusWindowController;
 
 typedef enum
@@ -126,6 +127,7 @@ struct Statistics {
 	BOOL            waitingForNetworkAvailability;
 	BOOL            wereWaitingForNetworkAvailability;
 	BOOL            stopWaitForNetworkAvailabilityThread;
+	BOOL            werePausedForTrustedWifi;
 	
     pthread_mutex_t bytecountMutex;     // Used to avoid race conditions when accessing the above
 
@@ -156,6 +158,8 @@ struct Statistics {
     BOOL            hasAuthUserPass;    // True iff configuration has a 'auth-user-pass' option. VALID ONLY IF tunOrTap is not nil
     BOOL            discardSocketInput; // True if should discard anything from the managment socket (set after receiving status of EXITING)
 	
+	SingBoxManager * singBoxManager;        // Manages sing-box VLESS/Reality proxy process
+
 	BOOL volatile	connectAfterDisconnect; // True if need to connect again after the disconnect completes
 	BOOL volatile	connectAfterDisconnectUserKnows; // Argument for the reconnect
     BOOL volatile   completelyDisconnected; // True only after GUI has caught up to disconnect request

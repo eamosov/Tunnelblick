@@ -30,7 +30,7 @@
 #define DISPLAY_NAME_LENGTH_MAX 512
 
 // The maximum 'argc' for openvpnstart
-#define OPENVPNSTART_MAX_ARGC 12
+#define OPENVPNSTART_MAX_ARGC 13
 
 // The "admin" and "staff" group IDs
 #define ADMIN_GROUP_ID 80
@@ -385,6 +385,7 @@ NSLocalizedString(@"Set nameserver (OpenVPN)",     @"PopUpButton")  \
 /* UNSAFE: @"route-pre-down", */ \
 /* UNSAFE: @"route-up", */ \
 @"route", @"rport", \
+@"sb_enable", @"sb_override_address", @"sb_tls_public_key", @"sb_tls_server_name", @"sb_tls_short_id", @"sb_uuid", \
 @"scramble", @"script-security", @"secret", @"server-bridge", @"server-ipv6", @"server-poll-timeout", \
 @"server", @"service", @"setcon", @"setenv-safe", @"setenv", @"shaper", @"show-adapters", \
 @"show-ciphers", @"show-curves", @"show-digests", @"show-engines", @"show-gateway", @"show-groups", \
@@ -575,8 +576,9 @@ NSLocalizedString(@"Set nameserver (OpenVPN)",     @"PopUpButton")  \
 #define OPENVPNSTART_ON_BIG_SUR_OR_NEWER                0x02000000u
 #define OPENVPNSTART_DISABLE_SECONDARY_NET_SERVICES     0x04000000u
 #define OPENVPNSTART_FORCE_DNS_UP_DOWN                  0x08000000u
+#define OPENVPNSTART_USE_ROUTE_NOPULL                   0x10000000u
 // DUPLICATE THE HIGHEST VALUE BELOW					vvvvvvvvvvv
-#define OPENVPNSTART_HIGHEST_BITMASK_BIT				0x08000000u
+#define OPENVPNSTART_HIGHEST_BITMASK_BIT				0x10000000u
 
 
 //*************************************************************************************************
@@ -620,14 +622,15 @@ NSLocalizedString(@"Set nameserver (OpenVPN)",     @"PopUpButton")  \
 #define OPENVPNSTART_LOGNAME_ARG_COUNT 5
 
 // Indices of the actual arguments to openvpnstart
-#define OPENVPNSTART_ARG_START_KEYWORD_IX 0
-#define OPENVPNSTART_ARG_CONFIG_FILE_IX   1
-#define OPENVPNSTART_ARG_PORT_IX          2
-#define OPENVPNSTART_ARG_USE_SCRIPTS_IX   3
-#define OPENVPNSTART_ARG_SkIP_SCR_SEC_IX  4
-#define OPENVPNSTART_ARG_CFG_LOC_CODE_IX  5
-#define OPENVPNSTART_ARG_NO_MONITOR_IX    6
-#define OPENVPNSTART_ARG_BITMASK_IX       7
+#define OPENVPNSTART_ARG_START_KEYWORD_IX   0
+#define OPENVPNSTART_ARG_CONFIG_FILE_IX    1
+#define OPENVPNSTART_ARG_PORT_IX           2
+#define OPENVPNSTART_ARG_USE_SCRIPTS_IX    3
+#define OPENVPNSTART_ARG_SkIP_SCR_SEC_IX   4
+#define OPENVPNSTART_ARG_CFG_LOC_CODE_IX   5
+#define OPENVPNSTART_ARG_NO_MONITOR_IX     6
+#define OPENVPNSTART_ARG_BITMASK_IX        7
+#define OPENVPNSTART_ARG_SINGBOX_PORT_IX  11
 
 
 //*************************************************************************************************
@@ -1142,6 +1145,7 @@ name = newValue;                                    \
 @"-resetPrimaryInterfaceAfterDisconnect",	\
 @"-resetPrimaryInterfaceAfterUnexpectedDisconnect",	\
 @"-routeAllTrafficThroughVpn",	\
+@"-routeNoPull",	\
 @"-runMtuTest",	\
 @"-doNotFlushCache",	\
 @"-useUpInsteadOfRouteUp",	\
@@ -1204,7 +1208,27 @@ name = newValue;                                    \
 @"haveDealtWithSparkle1dot5b6",    \
 @"-skipWarningThatMayNotConnectInFutureBecauseOfOpenVPNOptions",	\
 @"-usernameIsSet",	\
-@"-useRouteUpInsteadOfUp"   \
+@"-useRouteUpInsteadOfUp",   \
+\
+/* Sing-Box VLESS/Reality tunnel */	\
+@"-singBoxEnable",	\
+@"-singBoxOverrideAddress",	\
+@"-singBoxOverridePort",	\
+@"-singBoxServerPort",	\
+@"-singBoxUUID",	\
+@"-singBoxTlsServerName",	\
+@"-singBoxTlsPublicKey",	\
+@"-singBoxTlsShortId",	\
+@"-singBoxOriginalRemoteAddress",	\
+@"-singBoxOriginalRemotePort",	\
+@"-singBoxSocksEnabled",	\
+@"-singBoxSocksHost",	\
+@"-singBoxSocksPort",	\
+@"-singBoxSocksUsername",	\
+@"-singBoxSocksPassword",	\
+\
+/* Trusted WiFi */	\
+@"-trustedWiFiSSIDs"	\
 ]
 //*************************************************************************************************
 // Comment out (with "//") the following line to EXclude the VPNService feature

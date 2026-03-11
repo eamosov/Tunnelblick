@@ -663,6 +663,7 @@ remove_system_configuration_items() {
 		remove State:/Network/OpenVPN/DNS
 		remove State:/Network/OpenVPN/SMB
 		remove State:/Network/OpenVPN
+		remove State:/Network/Service/openvpn-corp-dns/DNS
 		quit
 EOF
 }
@@ -761,6 +762,13 @@ if [ -e "/Library/Application Support/Tunnelblick/shutting-down-computer.txt" ] 
 else
 
 	profile_or_execute run_prefix_or_suffix 'down-prefix.sh'
+
+	# Delete routes via batch-routes tool if route-noexec was active
+	if [ -n "$TUNNELBLICK_BATCH_ROUTES" ] && [ -x "$TUNNELBLICK_BATCH_ROUTES" ]; then
+		log_message "Executing batch route deletion..."
+		"$TUNNELBLICK_BATCH_ROUTES" delete
+		log_message "Batch route deletion completed with status $?"
+	fi
 
 	# Note: The following command will exit this script if the info cannot be accessed
 	profile_or_execute get_info_saved_by_up_script
