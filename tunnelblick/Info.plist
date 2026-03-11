@@ -138,5 +138,7 @@
 	<string>https://tunnelblick.net/cPrivacy.html#tunnelblick-privacy</string>
 	<key>NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Tunnelblick needs location access to identify the current WiFi network name for the Trusted WiFi feature.</string>
 </dict>
 </plist>

@@ -30,7 +30,7 @@
 @class VPNConnection;
 @class SettingsSheetWindowController;
 
-@interface MyPrefsWindowController : DBPrefsWindowController <NSTextViewDelegate, NSWindowDelegate, NSTabViewDelegate, NSTableViewDelegate>
+@interface MyPrefsWindowController : DBPrefsWindowController <NSTextViewDelegate, NSWindowDelegate, NSTabViewDelegate, NSTableViewDelegate, NSControlTextEditingDelegate>
 {   
     NSString                      * currentViewName;
     NSRect                          currentFrame;
@@ -135,6 +135,7 @@
 
 -(IBAction) monitorNetworkForChangesCheckboxWasClicked:             (NSButton *) sender;
 -(IBAction) routeAllTrafficThroughVpnCheckboxWasClicked:            (NSButton *) sender;
+-(IBAction) routeNoPullCheckboxWasClicked:                          (NSButton *) sender;
 -(IBAction) checkIPAddressAfterConnectOnAdvancedCheckboxWasClicked: (NSButton *) sender;
 -(IBAction) disableIpv6OnTunCheckboxWasClicked:                     (NSButton *) sender;
 -(IBAction) disableSecondaryNetworkServicesCheckboxWasClicked:     (NSButton *) sender;
@@ -144,6 +145,13 @@
 -(IBAction) whenToConnectOnComputerStartMenuItemWasClicked:   (id) sender;
 
 -(IBAction) advancedButtonWasClicked:                         (id) sender;
+-(IBAction) trustedWiFiButtonWasClicked:                      (id) sender;
+-(IBAction) socksEnabledCheckboxWasClicked:                   (id) sender;
+-(IBAction) socksProxyFieldDidChange:                         (id) sender;
+
+-(IBAction) connectionTypeDirectMenuItemWasClicked:           (id) sender;
+-(IBAction) connectionTypeSingBoxMenuItemWasClicked:          (id) sender;
+-(IBAction) connectionTypeTelemostMenuItemWasClicked:         (id) sender;
 
 
 // Methods for GeneralView

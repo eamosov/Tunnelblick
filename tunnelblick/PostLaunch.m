@@ -70,8 +70,6 @@ extern TunnelblickInfo * gTbInfo;
 
         [self displayMessageAboutRosetta];
 
-        [self displayMessagesAboutOpenSSL_1_1_1];
-
         [self displayMessagesAboutKextsAndBigSur];
 
         [self pruneTracesFolder];
@@ -249,55 +247,6 @@ extern TunnelblickInfo * gTbInfo;
                                 @"preferenceKey" : @"skipWarningAboutRosetta"};
         [gMC performSelectorOnMainThread: @selector(addWarningNote:) withObject: dict waitUntilDone: NO];
     }
-}
-
--(void) displayMessagesAboutOpenSSL_1_1_1 {
-
-    // Get a list of configurations that use OpenSSL 1.1.1.
-    NSMutableArray * list = [[[NSMutableArray alloc] initWithCapacity: 100] autorelease];
-    NSArray * displayNames = [[gMC.myVPNConnectionDictionary allKeys] sortedArrayUsingSelector: @selector(caseInsensitiveNumericCompare:)];
-    NSEnumerator * e = [displayNames objectEnumerator];
-    NSString * displayName;
-    while (  (displayName = [e nextObject])  ) {
-        NSString * value = [gTbDefaults stringForKey: [displayName stringByAppendingString: @"-openvpnVersion"]];
-        if (  [value containsString: @"-openssl-1.1.1"]  ) {
-            [list addObject: displayName];
-        }
-    }
-
-    if (  list.count == 0  ) {
-        return;                 // Nothing to warn about
-    }
-
-    // Construct an HTML warning about the problematic configurations
-    NSMutableString * html = [[[NSMutableString alloc] initWithCapacity: 1000] autorelease];
-
-    // Header
-    [html appendString: NSLocalizedString(@"<p>One or more VPN configurations use OpenVPN with OpenSSL 1.1.1, which contains\n"
-                                          @"   known security vulnerabilities for which fixes are not publicly available.</p>\n"
-                                          @"<p>We recommend that you update the following configuration(s) to\n"
-                                          @"   use OpenVPN with a newer version of OpenSSL:</p>\n\n"
-                                          @"<p>\n",
-                                          @"HTML warning message")];
-
-    // List of problematic configurations
-    e = [list objectEnumerator];
-    while (  (displayName = [e nextObject])  ) {
-        [html appendFormat: @"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;%@<br>\n", displayName];
-    }
-
-    // Trailer
-    [html appendString: NSLocalizedString(@"</p>\n"
-                                          @"<p>For more information, see\n"
-                                          @"   <a href=\"https://tunnelblick.net/cUsingOldVersionsOfOpenVPNOrOpenSSL.html\">Using\n"
-                                          @"   Old Versions of OpenVPN or OpenSSL</a> [tunnelblick.net].</p>",
-                                          @"HTML warning message")];
-
-    // Add the warning
-    NSDictionary * dict = @{@"headline" : NSLocalizedString(@"Insecure version of OpenSSL being used...", @"Headline for warning"),
-                            @"message"  : attributedLightDarkStringFromHTML(html),
-                            @"preferenceKey" : @"skipWarningAboutOpenSSL_1_1_1"};
-    [gMC performSelectorOnMainThread: @selector(addWarningNote:) withObject: dict waitUntilDone: NO];
 }
 
 -(void) displayMessagesAboutKextsAndBigSur {

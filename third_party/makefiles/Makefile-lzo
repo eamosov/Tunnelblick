@@ -36,7 +36,7 @@ built-lzo:
 		CC=$(CC) \
 		CFLAGS="$(CFLAGS) -arch $$a" \
 		./configure --build="$$TB_CONFIGURE_BUILD" \
-		            --host="$(TB_CONFIGURE_HOST)" \
+		            --host="$$TB_CONFIGURE_BUILD" \
 		            --prefix=$(LZO_STAGING_DIR)_$$a/ \
 		            --disable-dependency-tracking \
 		            --disable-asm ; \

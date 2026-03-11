@@ -111,15 +111,31 @@
 	IBOutlet NSMenuItem          * uponUnexpectedDisconnectDoNothingMenuItem;
 	IBOutlet NSMenuItem          * uponUnexpectedDisconnectResetPrimaryInterfaceMenuItem;
 	IBOutlet NSMenuItem          * uponUnexpectedDisconnectDisableNetworkAccessMenuItem;
-	
+
+	IBOutlet NSTextField         * connectionTypeTF;
+	IBOutlet NSTextFieldCell     * connectionTypeTFC;
+	IBOutlet TBPopUpButton       * connectionTypePopUpButton;
+	IBOutlet NSMenuItem          * connectionTypeDirectMenuItem;
+	IBOutlet NSMenuItem          * connectionTypeSingBoxMenuItem;
+	IBOutlet NSMenuItem          * connectionTypeTelemostMenuItem;
+
     IBOutlet TBButton            * monitorNetworkForChangesCheckbox;
     IBOutlet TBButton            * routeAllTrafficThroughVpnCheckbox;
+    IBOutlet TBButton            * routeNoPullCheckbox;
 	IBOutlet TBButton            * disableIpv6OnTunCheckbox;
     IBOutlet TBButton            * disableSecondaryNetworkServicesCheckbox;
     IBOutlet TBButton            * checkIPAddressAfterConnectOnAdvancedCheckbox;
 	
     IBOutlet TBButton            * advancedButton;
+
+    IBOutlet NSButton            * trustedWiFiButton;
+
+    IBOutlet NSButton            * socksEnabledCheckbox;
+    IBOutlet NSTextField         * socksProxyField;
 }
+
+-(NSButton *)    socksEnabledCheckbox;
+-(NSTextField *) socksProxyField;
 
 // Getters
 
@@ -186,8 +202,15 @@ TBPROPERTY_READONLY(NSMenuItem *,          uponUnexpectedDisconnectDoNothingMenu
 TBPROPERTY_READONLY(NSMenuItem *,          uponUnexpectedDisconnectResetPrimaryInterfaceMenuItem)
 TBPROPERTY_READONLY(NSMenuItem *,          uponUnexpectedDisconnectDisableNetworkAccessMenuItem)
 
+TBPROPERTY_READONLY(NSTextFieldCell *,     connectionTypeTFC)
+TBPROPERTY_READONLY(TBPopUpButton *,       connectionTypePopUpButton)
+TBPROPERTY_READONLY(NSMenuItem *,          connectionTypeDirectMenuItem)
+TBPROPERTY_READONLY(NSMenuItem *,          connectionTypeSingBoxMenuItem)
+TBPROPERTY_READONLY(NSMenuItem *,          connectionTypeTelemostMenuItem)
+
 TBPROPERTY_READONLY(TBButton *,            monitorNetworkForChangesCheckbox)
 TBPROPERTY_READONLY(TBButton *,            routeAllTrafficThroughVpnCheckbox)
+TBPROPERTY_READONLY(TBButton *,            routeNoPullCheckbox)
 TBPROPERTY_READONLY(TBButton *,            disableIpv6OnTunCheckbox)
 TBPROPERTY_READONLY(TBButton *,            disableSecondaryNetworkServicesCheckbox)
 TBPROPERTY_READONLY(TBButton *,            checkIPAddressAfterConnectOnAdvancedCheckbox)
@@ -201,5 +224,7 @@ TBPROPERTY_READONLY(TBPopUpButton *,       loggingLevelPopUpButton)
 TBPROPERTY_READONLY(NSArrayController *,   loggingLevelArrayController)
 
 TBPROPERTY_READONLY(TBButton *,            advancedButton)
+
+-(NSButton *) trustedWiFiButton;
 
 @end

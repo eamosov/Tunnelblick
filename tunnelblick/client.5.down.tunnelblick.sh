@@ -549,6 +549,7 @@ remove_system_configuration_items() {
 		remove State:/Network/OpenVPN/DNS
 		remove State:/Network/OpenVPN/SMB
 		remove State:/Network/OpenVPN
+		remove State:/Network/Service/openvpn-corp-dns/DNS
 		quit
 EOF
 }

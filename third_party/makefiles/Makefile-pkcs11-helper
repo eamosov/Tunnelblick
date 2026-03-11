@@ -34,13 +34,13 @@ built-pkcs11-helper: built-allssl
         fi ; \
 		CC=$(CC) \
 		CFLAGS="$(CFLAGS) -arch $$a" \
-		OPENSSL_CFLAGS="-I$(OPENSSL_1_1_STAGING_DIR)_$$a/include" \
-		OPENSSL_LIBS="-L$(OPENSSL_1_1_STAGING_DIR)_$$a/lib \
+		OPENSSL_CFLAGS="-I$(OPENSSL_3_5_STAGING_DIR)_$$a/include" \
+		OPENSSL_LIBS="-L$(OPENSSL_3_5_STAGING_DIR)_$$a/lib \
 		              -lssl \
 		              -lcrypto \
 		              -lz" \
 		./configure --build="$$TB_CONFIGURE_BUILD" \
-		            --host="$(TB_CONFIGURE_HOST)" \
+		            --host="$$TB_CONFIGURE_BUILD" \
 		            --prefix=$(PKCS11_STAGING_DIR)_$$a \
 		            --enable-static \
 		            --enable-shared=no \

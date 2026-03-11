@@ -47,7 +47,7 @@
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                             <subviews>
                                                                 <customView fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="538">
-                                                                    <rect key="frame" x="9" y="15" width="657" height="302"/>
+                                                                    <rect key="frame" x="9" y="-11" width="657" height="328"/>
                                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
                                                                     <subviews>
                                                                         <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="543" customClass="TBPopUpButton">
@@ -105,7 +105,7 @@
                                                                             </connections>
                                                                         </popUpButton>
                                                                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1239" customClass="TBButton">
-                                                                            <rect key="frame" x="4" y="75" width="639" height="18"/>
+                                                                            <rect key="frame" x="4" y="49" width="639" height="18"/>
                                                                             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                                                             <buttonCell key="cell" type="check" title="DisableIPv6 for tun$" bezelStyle="regularSquare" imagePosition="right" alignment="right" state="on" inset="2" id="1240">
                                                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -117,7 +117,7 @@
                                                                             </connections>
                                                                         </button>
                                                                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9o2-hM-kbd" customClass="TBButton">
-                                                                            <rect key="frame" x="4" y="55" width="639" height="18"/>
+                                                                            <rect key="frame" x="4" y="29" width="639" height="18"/>
                                                                             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                                                             <buttonCell key="cell" type="check" title="Disable secondary interfaces$" bezelStyle="regularSquare" imagePosition="right" alignment="right" state="on" inset="2" id="dmW-fY-y9y">
                                                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -177,7 +177,7 @@
                                                                             </textFieldCell>
                                                                         </textField>
                                                                         <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="536" customClass="TBButton">
-                                                                            <rect key="frame" x="525" y="3" width="122" height="32"/>
+                                                                            <rect key="frame" x="525" y="-23" width="122" height="32"/>
                                                                             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                                                             <buttonCell key="cell" type="push" title="Advanced$..." bezelStyle="rounded" alignment="center" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="575">
                                                                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -188,7 +188,7 @@
                                                                             </connections>
                                                                         </button>
                                                                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1251" customClass="TBButton">
-                                                                            <rect key="frame" x="4" y="95" width="639" height="18"/>
+                                                                            <rect key="frame" x="4" y="69" width="639" height="18"/>
                                                                             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                                                             <buttonCell key="cell" type="check" title="Route all traffic through the VPN$" bezelStyle="regularSquare" imagePosition="right" alignment="right" inset="2" id="1252">
                                                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -221,8 +221,44 @@
                                                                                 <outlet property="nextKeyView" destination="1113" id="aJD-Hb-KOV"/>
                                                                             </connections>
                                                                         </popUpButton>
+                                                                        <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ct-01-pop" customClass="TBPopUpButton">
+                                                                            <rect key="frame" x="4" y="109" width="272" height="26"/>
+                                                                            <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                                                            <popUpButtonCell key="cell" type="push" title="Direct$" bezelStyle="rounded" alignment="right" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" baseWritingDirection="rightToLeft" userInterfaceLayoutDirection="rightToLeft" imageScaling="proportionallyDown" inset="2" selectedItem="ct-04-dir" id="ct-02-cel">
+                                                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                                                <font key="font" metaFont="message"/>
+                                                                                <menu key="menu" title="OtherViews" id="ct-03-mnu">
+                                                                                    <items>
+                                                                                        <menuItem title="Direct$" state="on" id="ct-04-dir">
+                                                                                            <connections>
+                                                                                                <action selector="connectionTypeDirectMenuItemWasClicked:" target="-2" id="ct-07-act"/>
+                                                                                            </connections>
+                                                                                        </menuItem>
+                                                                                        <menuItem title="SingBox$" id="ct-05-sb">
+                                                                                            <connections>
+                                                                                                <action selector="connectionTypeSingBoxMenuItemWasClicked:" target="-2" id="ct-08-act"/>
+                                                                                            </connections>
+                                                                                        </menuItem>
+                                                                                        <menuItem title="Telemost$" id="ct-06-tm">
+                                                                                            <connections>
+                                                                                                <action selector="connectionTypeTelemostMenuItemWasClicked:" target="-2" id="ct-09-act"/>
+                                                                                            </connections>
+                                                                                        </menuItem>
+                                                                                    </items>
+                                                                                </menu>
+                                                                            </popUpButtonCell>
+                                                                        </popUpButton>
+                                                                        <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ct-10-tf">
+                                                                            <rect key="frame" x="279" y="115" width="364" height="17"/>
+                                                                            <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
+                                                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="left" title="Connection Type$:" id="ct-11-tfc">
+                                                                                <font key="font" metaFont="system"/>
+                                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                                            </textFieldCell>
+                                                                        </textField>
                                                                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="539" customClass="TBButton">
-                                                                            <rect key="frame" x="4" y="115" width="639" height="18"/>
+                                                                            <rect key="frame" x="4" y="89" width="639" height="18"/>
                                                                             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                                                             <buttonCell key="cell" type="check" title="Monitor network settings$" bezelStyle="regularSquare" imagePosition="right" alignment="right" state="on" inset="2" id="558">
                                                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -321,7 +357,7 @@
                                                                             </textFieldCell>
                                                                         </textField>
                                                                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1249" customClass="TBButton">
-                                                                            <rect key="frame" x="4" y="35" width="639" height="18"/>
+                                                                            <rect key="frame" x="4" y="9" width="639" height="18"/>
                                                                             <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMinY="YES"/>
                                                                             <buttonCell key="cell" type="check" title="Check apparent public IP address changed$" bezelStyle="regularSquare" imagePosition="right" alignment="right" state="on" inset="2" id="1250">
                                                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -615,6 +651,12 @@
                 <outlet property="configurationsHelpButton" destination="525" id="679"/>
                 <outlet property="configurationsTabView" destination="522" id="738"/>
                 <outlet property="connectButton" destination="526" id="727"/>
+                <outlet property="connectionTypePopUpButton" destination="ct-01-pop" id="ct-12-out"/>
+                <outlet property="connectionTypeTF" destination="ct-10-tf" id="ct-13-out"/>
+                <outlet property="connectionTypeTFC" destination="ct-11-tfc" id="ct-14-out"/>
+                <outlet property="connectionTypeDirectMenuItem" destination="ct-04-dir" id="ct-15-out"/>
+                <outlet property="connectionTypeSingBoxMenuItem" destination="ct-05-sb" id="ct-16-out"/>
+                <outlet property="connectionTypeTelemostMenuItem" destination="ct-06-tm" id="ct-17-out"/>
                 <outlet property="diagnosticInfoToClipboardButton" destination="1203" id="1287"/>
                 <outlet property="diagnosticInfoToClipboardProgressIndicator" destination="1283" id="1285"/>
                 <outlet property="disableIpv6OnTunCheckbox" destination="1239" id="1248"/>

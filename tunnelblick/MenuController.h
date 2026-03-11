@@ -233,6 +233,7 @@ enum ActiveInactiveState {
 
 // Menu actions
 -(IBAction)         openPreferencesWindow:                  (nonnull id)                sender;
+-(IBAction)         showNetworkStatus:                      (nonnull id)                sender;
 -(IBAction)         quit:                                   (nonnull id)                sender;
 
 -(void) addWarningNote: (nonnull NSDictionary *) dict;

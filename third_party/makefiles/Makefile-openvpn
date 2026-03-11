@@ -84,37 +84,17 @@ built-openvpn: built-openvpn-prepare built-lzo built-lz4 built-pkcs11-helper bui
         if [ -d $(BUILD_DIR)/openvpn/$$openvpn_name/openvpn ] ; then \
             cd $(BUILD_DIR)/openvpn/$$openvpn_name/openvpn ; \
             openvpn_major_minor="$${openvpn_name:8:3}" ; \
-            for ssl_name in "$(OPENSSL_1_1_NAME)" "$(OPENSSL_3_0_NAME)" "$(OPENSSL_3_5_NAME)" ; do \
+            for ssl_name in "$(OPENSSL_3_5_NAME)" ; do \
                 build_it=false; \
-                if [ "$$openvpn_major_minor" = "2.4" ] ; then \
-                    if [ $(OPENVPN_2_4_SSL_LIBRARIES_TEST) ] ; then \
-                        build_it=true ; \
-                    fi ; \
-                elif [ "$$openvpn_major_minor" = "2.5"  ] ; then \
-                    if [ $(OPENVPN_2_5_SSL_LIBRARIES_TEST) ] ; then \
-                        build_it=true ; \
-                    fi ; \
-                elif [ "$$openvpn_major_minor" = "2.6"  ] ; then \
+                if [ "$$openvpn_major_minor" = "2.6"  ] ; then \
                     if [ $(OPENVPN_2_6_SSL_LIBRARIES_TEST) ] ; then \
-                        build_it=true ; \
-                    fi ; \
-                elif [ "$$openvpn_major_minor" = "2.7"  ] ; then \
-                    if [ $(OPENVPN_2_7_SSL_LIBRARIES_TEST) ] ; then \
                         build_it=true ; \
                     fi ; \
                 else \
                     echo "warning: Will try to build unknown $$openvpn_major_minor version of OpenVPN with $$ssl_name" ; \
                     build_it=true ; \
                 fi ; \
-                if [ "$$ssl_name" = "$(OPENSSL_1_1_NAME)" ] ; then \
-                    ssl_staging_dir="$(OPENSSL_1_1_STAGING_DIR)" ; \
-                    target_archs="$(OPENVPN_OPENSSL_1_1_TARGET_ARCHS)" ; \
-                    pkcs11_enable="--enable-pkcs11" ; \
-                elif [ "$$ssl_name" = "$(OPENSSL_3_0_NAME)" ] ; then \
-                    ssl_staging_dir="$(OPENSSL_3_0_STAGING_DIR)" ; \
-                    target_archs="$(OPENVPN_OPENSSL_3_0_TARGET_ARCHS)" ; \
-                    pkcs11_enable="" ; \
-                elif [ "$$ssl_name" = "$(OPENSSL_3_5_NAME)" ] ; then \
+                if [ "$$ssl_name" = "$(OPENSSL_3_5_NAME)" ] ; then \
                     ssl_staging_dir="$(OPENSSL_3_5_STAGING_DIR)" ; \
                     target_archs="$(OPENVPN_OPENSSL_3_5_TARGET_ARCHS)" ; \
                     pkcs11_enable="" ; \
@@ -161,7 +141,7 @@ built-openvpn: built-openvpn-prepare built-lzo built-lz4 built-pkcs11-helper bui
                                     OS_VERSION=$$(uname -r) \
                                     ./configure \
                                         --build="$$TB_CONFIGURE_BUILD" \
-                                        --host="$(TB_CONFIGURE_HOST)" \
+                                        --host="$$TB_CONFIGURE_BUILD" \
                                         $$pkcs11_enable \
                                         $$configure_options ; \
                                 \
@@ -182,7 +162,7 @@ built-openvpn: built-openvpn-prepare built-lzo built-lz4 built-pkcs11-helper bui
                                     OS_VERSION=$$(uname -r) \
                                     ./configure \
                                         --build="$$TB_CONFIGURE_BUILD" \
-                                        --host="$(TB_CONFIGURE_HOST)" \
+                                        --host="$$TB_CONFIGURE_BUILD" \
                                         $$pkcs11_enable \
                                         $$configure_options ; \
                                 \

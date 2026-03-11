@@ -167,8 +167,8 @@ current Tunnelblick source code._
         This is an archive of the source code for LZO 2.10, as downloaded from
         https://www.oberhumer.com/opensource/lzo.
 
-    openssl-3.5.4.tar.gz, openssl-3.0.18.tar.gz, and openssl-1.1.1w.tar.gz
-        This are archives of the source code for OpenSSL, as downloaded from
+    openssl-3.5.5.tar.gz
+        This is the archive of the source code for OpenSSL, as downloaded from
         https://www.openssl.org/source.
 
     pkcs11-helper-1.27.0.tar.bz2

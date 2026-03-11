@@ -52,14 +52,10 @@ built-allssl: built-allssl-prepare
 		sslversion=$${ssldir##*/}; \
 		sslvariant=$${sslversion%-*}; \
 		if [ "$${sslvariant:0:7}" = "openssl" ] ; then \
-			if [ "$${sslversion:0:11}" = "openssl-1.1" ] ; then \
-				buildarch="$(OPENSSL_1_1_TARGET_ARCHS)" ; \
-			elif [ "$${sslversion:0:11}" = "openssl-3.0" ] ; then \
-				buildarch="$(OPENSSL_3_0_TARGET_ARCHS)" ; \
-			elif [ "$${sslversion:0:11}" = "openssl-3.5" ] ; then \
+			if [ "$${sslversion:0:11}" = "openssl-3.5" ] ; then \
 				buildarch="$(OPENSSL_3_5_TARGET_ARCHS)" ; \
 			else \
-				echo "error: Unknown OpenSSL version '$${sslversion}'. Must begin with 'openssl-1.1', 'openssl-3.0', or 'openssl-3.5' " ; \
+				echo "error: Unknown OpenSSL version '$${sslversion}'. Must begin with 'openssl-3.5' " ; \
 				exit 255 ; \
 			fi ; \
 		else \
@@ -89,7 +85,7 @@ built-allssl: built-allssl-prepare
 			echo "Make $${sslversion} for $$a ($$ssl_arch)" ; \
 			echo "CC: $(CC)"; \
 			echo "CFLAGS: $(CFLAGS)"; \
-			if [ "$${sslversion}" = "$(OPENSSL_1_1_NAME)" ] || [ "$${sslversion}" = "$(OPENSSL_3_0_NAME)" ] || [ "$${sslversion}" = "$(OPENSSL_3_5_NAME)" ] ; then \
+			if [ "$${sslversion}" = "$(OPENSSL_3_5_NAME)" ] ; then \
 				CC=$(CC) CFLAGS="$(CFLAGS) -arch $$a" ./Configure no-shared zlib no-asm --openssldir="$$staging" $$ssl_arch; \
 				$(MAKE) build_libs build_apps openssl.pc libssl.pc libcrypto.pc; \
 				echo "Install $${sslversion} for $$a to $$staging" ; \

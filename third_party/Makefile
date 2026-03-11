@@ -28,8 +28,6 @@ LZO_NAME         = lzo-2.10
 
 LZ4_NAME         = lz4-1.10.0
 
-OPENSSL_1_1_NAME = openssl-1.1.1w
-OPENSSL_3_0_NAME = openssl-3.0.19
 OPENSSL_3_5_NAME = openssl-3.5.5
 
 PKCS11_NAME      = pkcs11-helper-1.27.0
@@ -81,42 +79,33 @@ ifeq ($(TB_CAN_BUILD_ARM),0)
     TUNTAP_TARGET_ARCHS      = $(TB_COMMON_X86_ARCH)
 
     # Used to build OpenSSL:
-    OPENSSL_1_1_TARGET_ARCHS = $(TB_COMMON_X86_ARCH)
-    OPENSSL_3_0_TARGET_ARCHS = $(TB_COMMON_X86_ARCH)
     OPENSSL_3_5_TARGET_ARCHS = $(TB_COMMON_X86_ARCH)
 
     # Used to build OpenVPN
-    OPENVPN_OPENSSL_1_1_TARGET_ARCHS = $(TB_COMMON_X86_ARCH)
-    OPENVPN_OPENSSL_3_0_TARGET_ARCHS = $(TB_COMMON_X86_ARCH)
     OPENVPN_OPENSSL_3_5_TARGET_ARCHS = $(TB_COMMON_X86_ARCH)
 
 else
 
     # Build with an Xcode which can build for Apple Silicon (ARM architecture)
+    # Build universal binaries (arm64 + x86_64) — lipo is used downstream to combine them
 
-    LZ4_TARGET_ARCHS         = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
-    LZO_TARGET_ARCHS         = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
-    PKCS11_TARGET_ARCHS      = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
-    TUNTAP_TARGET_ARCHS      = $(TB_COMMON_X86_ARCH) $(TB_TUNTAP_ARM_ARCH)
-    OPENSSL_1_1_TARGET_ARCHS = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
-    OPENSSL_3_0_TARGET_ARCHS = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
-    OPENSSL_3_5_TARGET_ARCHS = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
+    LZ4_TARGET_ARCHS         = $(TB_COMMON_ARM_ARCH) $(TB_COMMON_X86_ARCH)
+    LZO_TARGET_ARCHS         = $(TB_COMMON_ARM_ARCH) $(TB_COMMON_X86_ARCH)
+    PKCS11_TARGET_ARCHS      = $(TB_COMMON_ARM_ARCH) $(TB_COMMON_X86_ARCH)
+    TUNTAP_TARGET_ARCHS      = $(TB_TUNTAP_ARM_ARCH) $(TB_COMMON_X86_ARCH)
+    OPENSSL_3_5_TARGET_ARCHS = $(TB_COMMON_ARM_ARCH) $(TB_COMMON_X86_ARCH)
 
     # Used to build OpenVPN
-    OPENVPN_OPENSSL_1_1_TARGET_ARCHS = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
-    OPENVPN_OPENSSL_3_0_TARGET_ARCHS = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
-    OPENVPN_OPENSSL_3_5_TARGET_ARCHS = $(TB_COMMON_X86_ARCH) $(TB_COMMON_ARM_ARCH)
+    OPENVPN_OPENSSL_3_5_TARGET_ARCHS = $(TB_COMMON_ARM_ARCH) $(TB_COMMON_X86_ARCH)
 
 endif
 
 #######################################################################################
 # For use in Makefile-openvpn
 # Define tests (inside bash [ ]) which determine which SSL libraries to link to for each major.minor version of OpenVPN
-# Each test compares a bash variable ($$ssl_name) with one or more make variables ( e.g., $(OPENSSL_1_1_NAME) )
+# Each test compares a bash variable ($$ssl_name) with one or more make variables ( e.g., $(OPENSSL_3_5_NAME) )
 
-OPENVPN_2_5_SSL_LIBRARIES_TEST = $$ssl_name = $(OPENSSL_1_1_NAME)
-OPENVPN_2_6_SSL_LIBRARIES_TEST = $$ssl_name = $(OPENSSL_1_1_NAME) -o $$ssl_name = $(OPENSSL_3_0_NAME) -o $$ssl_name = $(OPENSSL_3_5_NAME)
-OPENVPN_2_7_SSL_LIBRARIES_TEST = $$ssl_name = $(OPENSSL_3_0_NAME) -o $$ssl_name = $(OPENSSL_3_5_NAME)
+OPENVPN_2_6_SSL_LIBRARIES_TEST = $$ssl_name = $(OPENSSL_3_5_NAME)
 
 #######################################################################################
 # Define treatment of deprecated functions, methods, etc. for OpenVPN
@@ -141,8 +130,6 @@ PRODUCTS_DIR = $(TOPDIR)/products
 
 STAGING_DIR = $(BUILD_DIR)/staging
 
-OPENSSL_1_1_STAGING_DIR = $(STAGING_DIR)/$(OPENSSL_1_1_NAME)
-OPENSSL_3_0_STAGING_DIR = $(STAGING_DIR)/$(OPENSSL_3_0_NAME)
 OPENSSL_3_5_STAGING_DIR = $(STAGING_DIR)/$(OPENSSL_3_5_NAME)
 
 LZO_BUILD_DIR = $(BUILD_DIR)/$(LZO_NAME)

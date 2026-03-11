@@ -63,7 +63,8 @@ extern TunnelblickInfo * gTbInfo;
 							   pcov: (CGFloat) pcovWidthChange
 		    loggingLevelWidthChange: (CGFloat) loggingLevelWidthChange
 	      uponDisconnectWidthChange: (CGFloat) udWidthChange
-uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange {
+uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange
+			 connectionTypeWidthChange: (CGFloat) ctWidthChange {
 	
 	// Shift all the labels and buttons by the largest width change, so the widest is flush left/right
 	
@@ -83,7 +84,10 @@ uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange {
 	if (  largestWidthChange < uudWidthChange  ) {
 		largestWidthChange = uudWidthChange;
 	}
-	
+	if (  largestWidthChange < ctWidthChange  ) {
+		largestWidthChange = ctWidthChange;
+	}
+
 	BOOL rtl = [UIHelper languageAtLaunchWasRTL];
 	[UIHelper shiftControl: whenToConnectTF               by: largestWidthChange reverse: ! rtl];
 	[UIHelper shiftControl: whenToConnectPopUpButton      by: largestWidthChange reverse: ! rtl];
@@ -102,11 +106,14 @@ uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange {
 
 	[UIHelper shiftControl: uponUnexpectedDisconnectTF          by: largestWidthChange reverse: ! rtl];
 	[UIHelper shiftControl: uponUnexpectedDisconnectPopUpButton by: largestWidthChange reverse: ! rtl];
+
+	[UIHelper shiftControl: connectionTypeTF                   by: largestWidthChange reverse: ! rtl];
+	[UIHelper shiftControl: connectionTypePopUpButton          by: largestWidthChange reverse: ! rtl];
 }
 
 -(void) normalizeWidthOfConfigurationsButtons {
 	
-	NSArray * list = [NSArray arrayWithObjects: whenToConnectPopUpButton, setNameserverPopUpButton, perConfigOpenvpnVersionButton, loggingLevelPopUpButton, uponDisconnectPopUpButton, uponUnexpectedDisconnectPopUpButton, nil];
+	NSArray * list = [NSArray arrayWithObjects: whenToConnectPopUpButton, setNameserverPopUpButton, perConfigOpenvpnVersionButton, loggingLevelPopUpButton, uponDisconnectPopUpButton, uponUnexpectedDisconnectPopUpButton, connectionTypePopUpButton, nil];
 	if (  [list count] > 0  ) {
 		[UIHelper makeAllAsWideAsWidest: list shift: [UIHelper languageAtLaunchWasRTL]];
 	}
@@ -367,7 +374,13 @@ uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange {
 														   @"HTML info for the 'On unexpected disconnect' button."))];
 	[UIHelper setTitle: nil ofControl: uponUnexpectedDisconnectPopUpButton shift: rtl narrow: YES enable: YES];
 
-	
+	CGFloat ctWidthChange = [UIHelper setTitle: NSLocalizedString(@"Connection Type:", @"Window text") ofControl: connectionTypeTFC frameHolder: connectionTypeTF shift: ( !rtl  ) narrow: YES enable: YES];
+	[connectionTypeDirectMenuItem   setTitle: NSLocalizedString(@"Direct",   @"Button")];
+	[connectionTypeSingBoxMenuItem  setTitle: NSLocalizedString(@"SingBox",  @"Button")];
+	[connectionTypeTelemostMenuItem setTitle: NSLocalizedString(@"Telemost", @"Button")];
+	[UIHelper setTitle: nil ofControl: connectionTypePopUpButton shift: rtl narrow: YES enable: YES];
+
+
     // OpenVPN Version popup.
     
     CGFloat pcovWidthChange = [UIHelper setTitle: NSLocalizedString(@"OpenVPN version:", @"Window text") ofControl: perConfigOpenvpnVersionTFC frameHolder: perConfigOpenvpnVersionTF shift: ( !rtl ) narrow: YES enable: YES];
@@ -433,7 +446,7 @@ uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange {
 	 infoTitle: attributedStringFromHTML(html)];
 	[UIHelper setTitle: nil ofControl: perConfigOpenvpnVersionButton shift: rtl narrow: YES enable: YES];
 	
-	[self shiftLabelsAndButtonsWtc: wtcWidthChange sdns: sdnsWidthChange pcov: pcovWidthChange loggingLevelWidthChange: loggingLevelWidthChange uponDisconnectWidthChange: udWidthChange uponUnexpectedDisconnectWidthChange: uudWidthChange];
+	[self shiftLabelsAndButtonsWtc: wtcWidthChange sdns: sdnsWidthChange pcov: pcovWidthChange loggingLevelWidthChange: loggingLevelWidthChange uponDisconnectWidthChange: udWidthChange uponUnexpectedDisconnectWidthChange: uudWidthChange connectionTypeWidthChange: ctWidthChange];
 	
 	[self normalizeWidthOfConfigurationsButtons];
 	
@@ -455,6 +468,13 @@ uponUnexpectedDisconnectWidthChange: (CGFloat) uudWidthChange {
 														   @" traffic to be routed through the VPN server as if this checkbox had been checked. </p>\n",
 														   @"HTML info for the 'Route all IPv4 traffic through the VPN' checkbox."))];
 	
+	[routeNoPullCheckbox
+	 setTitle: NSLocalizedString(@"Ignore server-pushed routes", @"Checkbox name")
+	 infoTitle: attributedStringFromHTML(NSLocalizedString(@"<p><strong>When checked</strong>, Tunnelblick will instruct OpenVPN to ignore routes pushed by the server (route-nopull)."
+														   @" A bypass route to the VPN server via net_gateway will be added automatically.</p>\n"
+														   @"<p><strong>When not checked</strong>, the server may push routes that change your routing table.</p>\n",
+														   @"HTML info for the 'Ignore server-pushed routes' checkbox."))];
+
 	[disableIpv6OnTunCheckbox
 	 setTitle: NSLocalizedString(@"Disable IPv6 unless the VPN server is accessed using IPv6", @"Checkbox name")
 	 infoTitle: attributedStringFromHTML(NSLocalizedString(@"<p><strong>When checked</strong>, IPv6 will be disabled unless the OpenVPN server is being accessed via an IPv6 address.</p>\n"
@@ -557,6 +577,7 @@ TBSYNTHESIZE_OBJECT_GET(retain, NSArrayController *,   setNameserverArrayControl
 
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            monitorNetworkForChangesCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            routeAllTrafficThroughVpnCheckbox)
+TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            routeNoPullCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            disableIpv6OnTunCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            disableSecondaryNetworkServicesCheckbox)
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            checkIPAddressAfterConnectOnAdvancedCheckbox)
@@ -581,6 +602,24 @@ TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          uponUnexpectedDisconnectD
 TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          uponUnexpectedDisconnectResetPrimaryInterfaceMenuItem)
 TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          uponUnexpectedDisconnectDisableNetworkAccessMenuItem)
 
+TBSYNTHESIZE_OBJECT_GET(retain, NSTextFieldCell *,     connectionTypeTFC)
+TBSYNTHESIZE_OBJECT_GET(retain, TBPopUpButton *,       connectionTypePopUpButton)
+TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          connectionTypeDirectMenuItem)
+TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          connectionTypeSingBoxMenuItem)
+TBSYNTHESIZE_OBJECT_GET(retain, NSMenuItem *,          connectionTypeTelemostMenuItem)
+
 TBSYNTHESIZE_OBJECT_GET(retain, TBButton *,            advancedButton)
+
+-(NSButton *) trustedWiFiButton {
+	return trustedWiFiButton;
+}
+
+-(NSButton *) socksEnabledCheckbox {
+	return socksEnabledCheckbox;
+}
+
+-(NSTextField *) socksProxyField {
+	return socksProxyField;
+}
 
 @end

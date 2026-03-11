@@ -46,9 +46,8 @@ VerifyAppWasBuiltWhereExpected() {
         if [ "$ACTION" = "install" ] ; then
             echo "You must 'Build' Tunnelblick before doing an 'Archive'"
         else
-            echo "An Xcode preference must be set to put build products in the"
-            echo "'tunnelblick/build' folder."
-            echo "Please set Xcode preference > Locations > Advanced to 'Legacy'"
+            echo "error: Tunnelblick.app not found at ${APP_PATH}"
+            echo "  BUILT_PRODUCTS_DIR=${BUILT_PRODUCTS_DIR}"
         fi
         exit 1
     fi
@@ -108,15 +107,18 @@ CopyInstallerScriptsIntoResources() {
 CopyHelpersIntoResources() {
 
     # Copy helpers into Resources
-    cp -a "build/${CONFIGURATION}/atsystemstart"              "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/TunnelblickUpdateHelper"    "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/installer"                  "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/openvpnstart"               "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/process-network-changes"    "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/standardize-scutil-output"  "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/tunnelblickd"               "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/tunnelblick-helper"         "${APP_PATH}/Contents/Resources/"
-    cp -a "build/${CONFIGURATION}/update_signing_util"        "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/atsystemstart"              "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/TunnelblickUpdateHelper"    "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/installer"                  "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/openvpnstart"               "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/process-network-changes"    "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/standardize-scutil-output"  "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/tunnelblickd"               "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/tunnelblick-helper"         "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/update_signing_util"        "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/batch-routes"              "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/sing-box"                 "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/ydtun"                   "${APP_PATH}/Contents/Resources/"
 }
 
 CopyKextsIntoResources() {
@@ -135,7 +137,7 @@ CopyLauncherAppIntoLoginItems() {
     fi
 
     mkdir -m 755 "${APP_PATH}/Contents/Library/LoginItems"
-    cp -a "build/${CONFIGURATION}/Tunnelblick Launcher.app"   "${APP_PATH}/Contents/Library/LoginItems"
+    cp -a "${BUILT_PRODUCTS_DIR}/Tunnelblick Launcher.app"   "${APP_PATH}/Contents/Library/LoginItems"
 }
 
 SetupShortVersionStringInInfoPlist() {
@@ -216,8 +218,8 @@ BuildTunAndTapPackages() {
     fi
 
     # Set up source and target folders
-    mkdir -p "build/${CONFIGURATION}/tuntap_pkg"
-    pkg_target_dir="$( cd build/${CONFIGURATION}/tuntap_pkg ; pwd )"
+    mkdir -p "${BUILT_PRODUCTS_DIR}/tuntap_pkg"
+    pkg_target_dir="$( cd "${BUILT_PRODUCTS_DIR}/tuntap_pkg" ; pwd )"
     pkg_src_folder="$( cd ../third_party/build/tuntap/tuntap-20141104/tuntap/pkg ; pwd )"
 
     # Determine tuntap_version (e.g. "20141104") from name of folder
@@ -296,7 +298,7 @@ CreateOpenvpnDirectoryStructure() {
     last_openvpn="z"
     # DEFAULT OpenVPN will be the lowest version linked to OpenSSL with the following prefix:
     default_openvpn_version_prefix="openvpn-2.6"
-    default_openssl_version_prefix="openssl-3.0"
+    default_openssl_version_prefix="openssl-3.5"
 
     for d in $( ls "../third_party/products/openvpn" ) ; do
 
@@ -577,7 +579,7 @@ CreateDmg() {
     fi
 
     # Staging folder
-    tmpdmg="build/${CONFIGURATION}/${PROJECT_NAME}"
+    tmpdmg="${BUILT_PRODUCTS_DIR}/${PROJECT_NAME}"
 
     # Folder with files for the .dmg (.DS_Store and background folder which contains background.png background image)
     dmg_files="dmgFiles"
@@ -636,13 +638,16 @@ shopt nullglob
 
 # Set up global variables
 
-    APP_PATH="build/${CONFIGURATION}/${PROJECT_NAME}.app"   # Path of .app built by Xcode
-    DMG_PATH="build/${CONFIGURATION}/${PROJECT_NAME}.dmg"   # Path of unsigned .dmg we create
+    # Fallback for running outside Xcode (BUILT_PRODUCTS_DIR is set by Xcode in Run Script phases)
+    BUILT_PRODUCTS_DIR="${BUILT_PRODUCTS_DIR:-build/${CONFIGURATION:-Debug}}"
+
+    APP_PATH="${BUILT_PRODUCTS_DIR}/${PROJECT_NAME}.app"   # Path of .app built by Xcode
+    DMG_PATH="${BUILT_PRODUCTS_DIR}/${PROJECT_NAME}.dmg"   # Path of unsigned .dmg we create
     readonly APP_PATH
     readonly DMG_PATH
 
-    SIGNED_APP_PATH="build/${CONFIGURATION}/Signed/${PROJECT_NAME}.app" # Paths of signed .app and signed .dmg we create
-    SIGNED_DMG_PATH="build/${CONFIGURATION}/Signed/${PROJECT_NAME}.dmg"
+    SIGNED_APP_PATH="${BUILT_PRODUCTS_DIR}/Signed/${PROJECT_NAME}.app" # Paths of signed .app and signed .dmg we create
+    SIGNED_DMG_PATH="${BUILT_PRODUCTS_DIR}/Signed/${PROJECT_NAME}.dmg"
     readonly SIGNED_APP_PATH
     readonly SIGNED_DMG_PATH
 
@@ -738,5 +743,5 @@ shopt nullglob
 
 # Touch the build folder and app to get them to the top of listings sorted by modification date
 
-    touch build
+    touch "${BUILT_PRODUCTS_DIR}"
     touch "${APP_PATH}"

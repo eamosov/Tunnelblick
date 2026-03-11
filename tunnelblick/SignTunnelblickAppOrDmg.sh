@@ -122,6 +122,16 @@ sign_app () {
 
         echo "Signing with signing identity '$SIGNING_IDENTITY': '$app_path'"
 
+        # Remove Xcode preview dylib if present (not needed in Release builds, breaks notarization)
+        if [ -e "$app_path/Contents/MacOS/__preview.dylib" ] ; then
+            rm -f "$app_path/Contents/MacOS/__preview.dylib"
+            echo "Removed __preview.dylib from $app_path"
+        fi
+
+        codesign_v_t_or "$app_path/Contents/MacOS/Tunnelblick.debug.dylib"
+        codesign_v_t_or "$app_path/Contents/Resources/sing-box"
+        codesign_v_t_or "$app_path/Contents/Resources/ydtun"
+        codesign_v_t_or "$app_path/Contents/Resources/batch-routes"
         codesign_v_t_or "$app_path/Contents/Resources/atsystemstart"
         codesign_v_t_or "$app_path/Contents/Resources/TunnelblickUpdateHelper"
         codesign_v_t_or "$app_path/Contents/Resources/installer"
@@ -131,7 +141,7 @@ sign_app () {
         codesign_v_t_or "$app_path/Contents/Resources/tunnelblickd"
         codesign_v_t_or "$app_path/Contents/Resources/tunnelblick-helper"
         codesign_v_t_or "$app_path/Contents/Resources/update_signing_util"
-        codesign_v_t_or "$app_path/Contents/Resources/update_signing_util_debugger"
+        codesign_v_t_or "$app_path/Contents/Resources/update_signing_util_debugger" "--force"
 
         # Sign the openvpn and openvpn-down-root.so binaries
         local openvpn_version_dir
