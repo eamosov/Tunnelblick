@@ -3250,6 +3250,18 @@ static int startVPN(NSString * configFile,
                 }
             }
         }
+    } else {
+        // 'Do not set nameserver' mode: still run the standard up/down scripts with -S flag
+        // so that batch-routes can install routes, but skip all DNS/SMB configuration.
+        NSString * upscriptCommand   = [escaped(newUpscriptPath) stringByAppendingString: @" -S"];
+        NSString * downscriptCommand = [escaped(newDownscriptPath) stringByAppendingString: @" -S"];
+
+        [arguments addObjectsFromArray: [NSArray arrayWithObjects:
+                                             @"--up", upscriptCommand,
+                                         @"--down", downscriptCommand,
+                                         nil
+                                        ]
+        ];
     }
 
     if (  (bitMask & OPENVPNSTART_DISABLE_LOGGING) == 0  ) {

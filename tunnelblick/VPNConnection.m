@@ -19,6 +19,13 @@
  */
 
 #import <CoreServices/CoreServices.h>
+#import <ifaddrs.h>
+#import <net/if.h>
+#import <arpa/inet.h>
+#import <netdb.h>
+#import <sys/socket.h>
+#import <fcntl.h>
+#import <poll.h>
 #import <libkern/OSAtomic.h>
 #import <LocalAuthentication/LocalAuthentication.h>
 #import <pthread.h>
@@ -1940,10 +1947,251 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
         // returns from network access requests. So we wait for a few seconds.
         uint waitSeconds = [gTbDefaults unsignedIntForKey: @"delayBeforeConnectingAfterReenablingNetworkServices" default: 3 min: 0 max: 3600];
         sleep(waitSeconds);
-        [self performSelectorOnMainThread: @selector(finishMakingConnection:) withObject: dict waitUntilDone: NO];
+
+        // Run server probe before finishing connection (still on background thread)
+        [self waitForServerProbeAndFinish: dict];
     }
 
     [pool drain];
+}
+
+-(void) waitForServerProbeThread: (NSDictionary *) dict {
+
+    // Secondary thread. Runs the server probe (which loops indefinitely until success or cancel),
+    // then finishes the connection on the main thread.
+
+    NSAutoreleasePool * pool = [NSAutoreleasePool new];
+
+    [self waitForServerProbeAndFinish: dict];
+
+    [pool drain];
+}
+
+-(void) waitForServerProbeAndFinish: (NSDictionary *) dict {
+
+    // Can be called from any background thread.
+    // Runs the server probe, then dispatches finishMakingConnection: to the main thread on success,
+    // or skipFinishMakingConnection: on failure/cancel.
+
+    if ( [self probeServerReachability] ) {
+        [self performSelectorOnMainThread: @selector(finishMakingConnection:) withObject: dict waitUntilDone: NO];
+    } else {
+        [self addToLog: @"Connection aborted: server probe was cancelled"];
+        [self performSelectorOnMainThread: @selector(skipFinishMakingConnection:) withObject: dict waitUntilDone: NO];
+    }
+}
+
+static BOOL hasValidIPAddressOnActiveInterface(void) {
+
+    // Check that a non-loopback network interface has a valid (non-link-local) IPv4 address,
+    // which indicates that DHCP has completed and the interface is ready for traffic.
+
+    struct ifaddrs * interfaces = NULL;
+    BOOL hasValid = NO;
+
+    if ( getifaddrs(&interfaces) != 0 ) {
+        return NO;
+    }
+
+    struct ifaddrs * iface = interfaces;
+    while ( iface != NULL ) {
+        if (   iface->ifa_addr != NULL
+            && iface->ifa_addr->sa_family == AF_INET
+            && (iface->ifa_flags & IFF_UP)
+            && !(iface->ifa_flags & IFF_LOOPBACK)  ) {
+
+            char addrBuf[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET,
+                      &((struct sockaddr_in *)iface->ifa_addr)->sin_addr,
+                      addrBuf, sizeof(addrBuf));
+            NSString * ip = [NSString stringWithUTF8String: addrBuf];
+
+            // Reject link-local (169.254.x.x) — means DHCP hasn't completed
+            if (   ! [ip hasPrefix: @"169.254."]
+                && ! [ip hasPrefix: @"127."]  ) {
+                hasValid = YES;
+                break;
+            }
+        }
+        iface = iface->ifa_next;
+    }
+
+    freeifaddrs(interfaces);
+    return hasValid;
+}
+
+static BOOL hasDefaultRoute(void) {
+
+    // Check for a default route by running "route -n get default".
+    // A zero exit status means the default route exists.
+
+    NSTask * task = [[[NSTask alloc] init] autorelease];
+    [task setLaunchPath: @"/sbin/route"];
+    [task setArguments: @[@"-n", @"get", @"default"]];
+    [task setStandardOutput: [NSPipe pipe]];
+    [task setStandardError:  [NSPipe pipe]];
+
+    @try {
+        [task launch];
+        [task waitUntilExit];
+        return ([task terminationStatus] == 0);
+    } @catch (NSException * e) {
+        NSLog(@"TrustedWiFi: hasDefaultRoute exception: %@", e);
+        return NO;
+    }
+}
+
+static BOOL tcpProbe(NSString * host, unsigned short port, int timeoutSeconds) {
+
+    // Attempt a non-blocking TCP connect (SYN probe) to host:port.
+    // Returns YES if the connection succeeds within the timeout.
+
+    struct addrinfo hints, *res = NULL;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    NSString * portStr = [NSString stringWithFormat: @"%hu", port];
+    int err = getaddrinfo([host UTF8String], [portStr UTF8String], &hints, &res);
+    if ( err != 0 || res == NULL ) {
+        NSLog(@"TrustedWiFi: tcpProbe getaddrinfo failed for %@:%hu: %s", host, port, gai_strerror(err));
+        return NO;
+    }
+
+    int sock = socket(res->ai_family, SOCK_STREAM, 0);
+    if ( sock < 0 ) {
+        freeaddrinfo(res);
+        return NO;
+    }
+
+    // Set non-blocking
+    int flags = fcntl(sock, F_GETFL, 0);
+    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+    int connectResult = connect(sock, res->ai_addr, res->ai_addrlen);
+    freeaddrinfo(res);
+
+    BOOL success = NO;
+    if ( connectResult == 0 ) {
+        success = YES;
+    } else if ( errno == EINPROGRESS ) {
+        struct pollfd pfd;
+        pfd.fd = sock;
+        pfd.events = POLLOUT;
+        int pollResult = poll(&pfd, 1, timeoutSeconds * 1000);
+        if ( pollResult > 0 && (pfd.revents & POLLOUT) ) {
+            int soError = 0;
+            socklen_t soLen = sizeof(soError);
+            getsockopt(sock, SOL_SOCKET, SO_ERROR, &soError, &soLen);
+            success = (soError == 0);
+        }
+    }
+
+    close(sock);
+    return success;
+}
+
+-(BOOL) probeServerReachability {
+
+    // Determine the correct server:port to TCP-probe before connecting.
+    //
+    // If sing-box enabled:
+    //   - with SOCKS:    probe socksHost:socksPort
+    //   - without SOCKS: probe originalRemoteAddress:serverPort (VLESS server, default port 443)
+    // If sing-box disabled:
+    //   - TCP protocol:  probe remote address:port from .ovpn
+    //   - UDP protocol:  skip probe (return YES)
+
+    NSString * prefix = [[self displayName] stringByAppendingString: @"-"];
+    NSString * probeHost = nil;
+    unsigned short probePort = 0;
+    NSString * probeDescription = nil;
+
+    BOOL sbEnabled = [gTbDefaults boolForKey: [prefix stringByAppendingString: @"singBoxEnable"]];
+
+    if ( sbEnabled ) {
+
+        BOOL socksEnabled = [gTbDefaults boolForKey: [prefix stringByAppendingString: @"singBoxSocksEnabled"]];
+
+        if ( socksEnabled ) {
+            // SB + SOCKS: probe the SOCKS proxy server
+            probeHost = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxSocksHost"]];
+            NSString * portStr = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxSocksPort"]];
+            if ( portStr && [portStr length] > 0 ) {
+                probePort = (unsigned short)[portStr intValue];
+            }
+            probeDescription = @"SOCKS proxy";
+
+        } else {
+            // SB without SOCKS: probe the VLESS/Reality server directly
+            // server = originalRemoteAddress, server_port = serverPort (default 443)
+            probeHost = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxOriginalRemoteAddress"]];
+
+            NSString * portStr = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxServerPort"]];
+            if ( portStr && [portStr length] > 0 ) {
+                probePort = (unsigned short)[portStr intValue];
+            } else {
+                probePort = 443;
+            }
+            probeDescription = @"Sing-Box VLESS server";
+        }
+
+    } else {
+        // No sing-box — probe VPN server directly, but only for TCP protocol
+        NSString * cfgContents = [self condensedSanitizedConfigurationFileContents];
+        if ( cfgContents ) {
+            // Check protocol — skip probe for UDP
+            NSRange protoRange = [cfgContents rangeOfString: @"proto "];
+            if ( protoRange.location != NSNotFound ) {
+                NSUInteger start = protoRange.location + protoRange.length;
+                NSRange eol = [cfgContents rangeOfString: @"\n" options: 0 range: NSMakeRange(start, [cfgContents length] - start)];
+                NSUInteger end = (eol.location != NSNotFound) ? eol.location : [cfgContents length];
+                NSString * proto = [[cfgContents substringWithRange: NSMakeRange(start, end - start)] stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
+                if ( ! [proto hasPrefix: @"tcp"] ) {
+                    [self addToLog: [NSString stringWithFormat: @"Skipping server probe (protocol is %@, not TCP)", proto]];
+                    return YES;
+                }
+            }
+
+            // Extract remote host:port from .ovpn config
+            NSString * remoteAddr = nil;
+            NSString * remotePort = nil;
+            [SingBoxManager stripSingBoxDirectivesFromConfig: cfgContents remoteAddress: &remoteAddr remotePort: &remotePort];
+            probeHost = remoteAddr;
+            if ( remotePort ) {
+                probePort = (unsigned short)[remotePort intValue];
+            }
+            probeDescription = @"VPN server";
+        }
+    }
+
+    if ( ! probeHost || [probeHost length] == 0 || probePort == 0 ) {
+        [self addToLog: @"Skipping server probe (could not determine server address/port)"];
+        return YES;
+    }
+
+    [self addToLog: [NSString stringWithFormat: @"Probing %@ %@:%hu...", probeDescription, probeHost, probePort]];
+
+    // Retry indefinitely until the server is reachable, the user disconnects, or the app shuts down.
+    // This prevents connecting to a server that is not yet reachable (e.g. after WiFi change).
+    unsigned attempt = 0;
+    while ( YES ) {
+        if ( gShuttingDownTunnelblick ) return NO;
+        if ( [requestedState isEqualToString: @"EXITING"] ) {
+            [self addToLog: @"Server probe cancelled (disconnect requested)"];
+            return NO;
+        }
+
+        attempt++;
+
+        if ( tcpProbe(probeHost, probePort, 5) ) {
+            [self addToLog: [NSString stringWithFormat: @"%@ %@:%hu is reachable (attempt %u)", probeDescription, probeHost, probePort, attempt]];
+            return YES;
+        }
+
+        [self addToLog: [NSString stringWithFormat: @"%@ %@:%hu not reachable (attempt %u), retrying in 5s...", probeDescription, probeHost, probePort, attempt]];
+        sleep(5);
+    }
 }
 
 -(void) waitForTrustedWiFiLeaveThread: (NSDictionary *) dict {
@@ -1966,8 +2214,55 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
     }
 
     if ( ! gShuttingDownTunnelblick && [requestedState isEqualToString: @"CONNECTED"] ) {
-        NSLog(@"TrustedWiFi: Left trusted WiFi network, reconnecting %@", [self displayName]);
-        [self addToLog: @"Resuming VPN - disconnected from trusted WiFi network"];
+        NSLog(@"TrustedWiFi: Left trusted WiFi network, waiting for network readiness before reconnecting %@", [self displayName]);
+        [self addToLog: @"Resuming VPN - left trusted WiFi network, waiting for network to become ready"];
+
+        // Show "waiting for network" state while we wait for the network to stabilize
+        [self performSelectorOnMainThread: @selector(setState:) withObject: @"NETWORK_ACCESS" waitUntilDone: YES];
+
+        // Wait for valid IP address and default route (up to 30 seconds).
+        // WiFi association happens before DHCP completes and routes are installed,
+        // so we must wait for the network stack to be fully ready.
+        unsigned maxWaitSeconds = 30;
+        unsigned waited = 0;
+        BOOL networkReady = NO;
+        while ( waited < maxWaitSeconds ) {
+            if ( gShuttingDownTunnelblick ) break;
+            if ( [requestedState isEqualToString: @"EXITING"] ) break;
+
+            if ( hasValidIPAddressOnActiveInterface() && hasDefaultRoute() ) {
+                networkReady = YES;
+                break;
+            }
+            sleep(1);
+            waited++;
+        }
+
+        if ( ! networkReady ) {
+            // Even if checks didn't pass, proceed if not shutting down — networkIsReachable() in connect: will do another check.
+            if ( gShuttingDownTunnelblick || [requestedState isEqualToString: @"EXITING"] ) {
+                NSLog(@"TrustedWiFi: Aborting reconnect (shutting down or user disconnected) for %@", [self displayName]);
+                [pool drain];
+                return;
+            }
+            NSLog(@"TrustedWiFi: Network readiness wait timed out after %u seconds for %@, proceeding anyway", maxWaitSeconds, [self displayName]);
+            [self addToLog: [NSString stringWithFormat: @"Network readiness wait timed out after %u seconds, proceeding with connection attempt", maxWaitSeconds]];
+        } else {
+            NSLog(@"TrustedWiFi: Network ready after %u seconds for %@", waited, [self displayName]);
+            [self addToLog: [NSString stringWithFormat: @"Network ready after %u seconds, connecting", waited]];
+
+            // Extra stabilization delay for DNS and routing table to fully settle
+            sleep(2);
+        }
+
+        // Probe the target server to verify it is reachable before connecting.
+        // Loops indefinitely until success or user cancels (requestedState == EXITING).
+        if ( ! [self probeServerReachability] ) {
+            NSLog(@"TrustedWiFi: Aborting reconnect (probe cancelled) for %@", [self displayName]);
+            [pool drain];
+            return;
+        }
+
         // Transition to EXITING state so connect: will accept the reconnection
         [self performSelectorOnMainThread: @selector(setState:) withObject: @"EXITING" waitUntilDone: YES];
         BOOL userKnows = [[dict objectForKey: @"userKnows"] boolValue];
@@ -2210,10 +2505,7 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 
 	[self setArgumentsUsedToStartOpenvpnstart: [self argumentsForOpenvpnstartForNow: YES userKnows: userKnows]];
 
-    connectedUseScripts    = (unsigned)[[argumentsUsedToStartOpenvpnstart objectAtIndex: OPENVPNSTART_ARG_USE_SCRIPTS_IX] intValue];
-    [self setConnectedCfgLocCodeString: [argumentsUsedToStartOpenvpnstart objectAtIndex: OPENVPNSTART_ARG_CFG_LOC_CODE_IX]];
-
-    if (  [argumentsUsedToStartOpenvpnstart count] == 0  ) {
+    if (  ! argumentsUsedToStartOpenvpnstart || [argumentsUsedToStartOpenvpnstart count] == 0  ) {
         if (  userKnows  ) {
 			[self setRequestedState: oldRequestedState]; // User cancelled
         }
@@ -2226,6 +2518,9 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 		}
         return;
     }
+
+    connectedUseScripts    = (unsigned)[[argumentsUsedToStartOpenvpnstart objectAtIndex: OPENVPNSTART_ARG_USE_SCRIPTS_IX] intValue];
+    [self setConnectedCfgLocCodeString: [argumentsUsedToStartOpenvpnstart objectAtIndex: OPENVPNSTART_ARG_CFG_LOC_CODE_IX]];
 
     [self showStatusWindowForce: YES]; // Force the VPN status window open (even if the user closed it earlier) because the user clicked "connect"
 
@@ -2245,11 +2540,16 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 		stopWaitForNetworkAvailabilityThread = FALSE;
 		[gMC addNonconnection: self];
 		TBLog(@"DB-CD", @"connect:userKnows: Will wait for network availability in new thread")
+		// waitForNetworkAvailabilityThread will also run the server probe before finishing
 		[NSThread detachNewThreadSelector: @selector(waitForNetworkAvailabilityThread:) toTarget: self withObject: dict];
 		return;
 	}
 
-    [self finishMakingConnection:dict];
+	// Network is available — run server probe on background thread before connecting.
+	// This avoids blocking the main thread (UI stays responsive, user can cancel).
+	[self addToLog: @"Network available, probing server reachability..."];
+	[self setState: @"NETWORK_ACCESS"];
+	[NSThread detachNewThreadSelector: @selector(waitForServerProbeThread:) toTarget: self withObject: dict];
 
 }
 

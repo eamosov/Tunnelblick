@@ -2129,6 +2129,7 @@ ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT="false"
 ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT_UNEXPECTED="false"
 ARG_TB_PATH="/Applications/Tunnelblick.app"
 ARG_RESTORE_ON_WINS_RESET="false"
+ARG_SKIP_DNS="false"
 
 logDebugMessage "        **********************************************"
 logDebugMessage "        ENVIRONMENT VARIABLES:"
@@ -2188,6 +2189,9 @@ while [ $# -ne 0 ] ; do
     elif [ "$1" = "-w" ] ; then                     # -w = ARG_RESTORE_ON_WINS_RESET
 		ARG_RESTORE_ON_WINS_RESET="true"
 		shift
+    elif [ "$1" = "-S" ] ; then                     # -S = ARG_SKIP_DNS (routes only, no DNS/SMB changes)
+		ARG_SKIP_DNS="true"
+		shift
     elif [ "$1" = "-x" ] ; then                     # -x = ARG_DISABLE_SECONDARY_SERVICES_ON_TUN
 		ARG_DISABLE_SECONDARY_SERVICES_ON_TUN="true"
 		shift
@@ -2209,7 +2213,7 @@ for ((SCRIPT_ARGS_INDEX=0; SCRIPT_ARGS_INDEX<SCRIPT_ARGS_COUNT; ++SCRIPT_ARGS_IN
 	shift
 done
 
-readonly ARG_MONITOR_NETWORK_CONFIGURATION ARG_RESTORE_ON_DNS_RESET ARG_RESTORE_ON_WINS_RESET ARG_TAP ARG_PREPEND_DOMAIN_NAME ARG_FLUSH_DNS_CACHE ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT_UNEXPECTED ARG_IGNORE_OPTION_FLAGS SCRIPT_ARGS
+readonly ARG_MONITOR_NETWORK_CONFIGURATION ARG_RESTORE_ON_DNS_RESET ARG_RESTORE_ON_WINS_RESET ARG_TAP ARG_PREPEND_DOMAIN_NAME ARG_FLUSH_DNS_CACHE ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT_UNEXPECTED ARG_IGNORE_OPTION_FLAGS ARG_SKIP_DNS SCRIPT_ARGS
 
 run_prefix_or_suffix 'up-prefix.sh'
 
@@ -2289,10 +2293,17 @@ fi
 
 ROUTE_GATEWAY_IS_DHCP="false"
 
+EXIT_CODE=0
+
+if ${ARG_SKIP_DNS} ; then
+
+    # -S flag: skip all DNS/SMB/network configuration, only routes were needed (already done above by batch-routes)
+    logMessage "Skipping DNS/SMB configuration (-S flag: 'Do not set nameserver' mode, routes only)"
+
+else
+
 # We sleep to allow time for macOS to process network settings
 sleep 2
-
-EXIT_CODE=0
 
 if ${ARG_TAP} ; then
 
@@ -2390,6 +2401,8 @@ else
 		EXIT_CODE=$?
 	fi
 fi
+
+fi # end of ARG_SKIP_DNS check
 
 touch "/Library/Application Support/Tunnelblick/downscript-needs-to-be-run.txt"
 
