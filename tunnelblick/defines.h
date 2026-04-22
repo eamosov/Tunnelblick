@@ -30,12 +30,7 @@
 #define DISPLAY_NAME_LENGTH_MAX 512
 
 // The maximum 'argc' for openvpnstart
-#define OPENVPNSTART_MAX_ARGC 14
-
-// Sidecar tunnel type values passed to openvpnstart
-#define SIDECAR_TYPE_NONE    0
-#define SIDECAR_TYPE_SINGBOX 1
-#define SIDECAR_TYPE_TELEMOST 2
+#define OPENVPNSTART_MAX_ARGC 12
 
 // The "admin" and "staff" group IDs
 #define ADMIN_GROUP_ID 80
@@ -635,9 +630,6 @@ NSLocalizedString(@"Set nameserver (OpenVPN)",     @"PopUpButton")  \
 #define OPENVPNSTART_ARG_CFG_LOC_CODE_IX   5
 #define OPENVPNSTART_ARG_NO_MONITOR_IX     6
 #define OPENVPNSTART_ARG_BITMASK_IX        7
-#define OPENVPNSTART_ARG_SINGBOX_PORT_IX  11
-
-
 //*************************************************************************************************
 // Bit masks for bitMask parameter of installer
 

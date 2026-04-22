@@ -1787,8 +1787,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C01FCF4A08A954540054247B /* Build configuration list for PBXNativeTarget "Tunnelblick" */;
 			buildPhases = (
-				C1274AB20000000000000001 /* Build sing-box */,
-				C1274AB20000000000000002 /* Build ydtun */,
+				C1274AB20000000000000001 /* Build openvpn wrapper */,
 				616A49200E38D17500477476 /* Build Third Party Items */,
 				8D1107290486CEB800E47090 /* Resources */,
 				8D11072C0486CEB800E47090 /* Sources */,
@@ -2088,38 +2087,22 @@
 			shellScript = "arch -x86_64 ../third_party/BuildThirdPartyItems.sh\n";
 			showEnvVarsInLog = 0;
 		};
-		C1274AB20000000000000001 /* Build sing-box */ = {
+		C1274AB20000000000000001 /* Build openvpn wrapper */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/build-sing-box.sh",
+				"$(SRCROOT)/build-openvpn.sh",
 			);
-			name = "Build sing-box";
+			name = "Build openvpn wrapper";
 			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/sing-box",
+				"$(BUILT_PRODUCTS_DIR)/openvpn-wrapper",
+				"$(BUILT_PRODUCTS_DIR)/openvpn-down-root.so",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "\"${PROJECT_DIR}/build-sing-box.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		C1274AB20000000000000002 /* Build ydtun */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/build-ydtun.sh",
-			);
-			name = "Build ydtun";
-			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/ydtun",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "\"${PROJECT_DIR}/build-ydtun.sh\"\n";
+			shellScript = "\"${PROJECT_DIR}/build-openvpn.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

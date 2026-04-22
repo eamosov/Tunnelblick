@@ -1015,9 +1015,6 @@ TBPROPERTY(          NSMutableArray *,         messagesIfConnectionFails,       
     [authRetryParameter				  release]; authRetryParameter               = nil;
     [managementPassword               release]; managementPassword               = nil;
 
-    if ( singBoxManager ) { [singBoxManager stop]; [singBoxManager release]; singBoxManager = nil; }
-    if ( ydtunManager )   { [ydtunManager stop];   [ydtunManager release];   ydtunManager   = nil; }
-
     [super dealloc];
 }
 
@@ -2309,20 +2306,6 @@ static BOOL tcpProbe(NSString * host, unsigned short port, int timeoutSeconds) {
             }
             [self disconnectFromManagmentSocket];
 
-            // Stop sidecar tunnels if running
-            if (  singBoxManager  ) {
-                [self addToLog: @"Stopping Sing-Box VLESS/Reality tunnel"];
-                [singBoxManager stop];
-                [singBoxManager release];
-                singBoxManager = nil;
-            }
-            if (  ydtunManager  ) {
-                [self addToLog: @"Stopping ydtun Telemost/WebRTC tunnel"];
-                [ydtunManager stop];
-                [ydtunManager release];
-                ydtunManager = nil;
-            }
-
             portNumber = 0;
             pid = 0;
             areDisconnecting = FALSE;
@@ -3571,69 +3554,15 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 
     NSString * ourOpenVPNVersion = [gTbInfo.allOpenvpnOpenssslVersions objectAtIndex: finalOpenvpnIx];
 
-    // Check if a sidecar tunnel (sing-box or ydtun) is enabled and start it if so
-    // Only actually start the sidecar when forNow is YES (real connection, not dry-run check)
-    NSString * sidecarPortString = @"0";
-    NSString * sidecarTypeString = @"0";
-    NSString * sidecarPrefix = [[self displayName] stringByAppendingString: @"-"];
-    BOOL sbEnabled = [gTbDefaults boolForKey: [sidecarPrefix stringByAppendingString: @"singBoxEnable"]];
-    BOOL ydEnabled = [gTbDefaults boolForKey: [sidecarPrefix stringByAppendingString: @"ydtunEnable"]];
-
-    if ( sbEnabled && forNow ) {
-        [self addToLog: @"Sing-Box VLESS/Reality tunnel is enabled for this connection"];
-
-        if ( singBoxManager ) {
-            [singBoxManager stop];
-            [singBoxManager release];
-        }
-        singBoxManager = [[SingBoxManager alloc] initWithDisplayName: [self displayName]];
-        __block VPNConnection * weakSelf = self;
-        singBoxManager.logBlock = ^(NSString * msg) { [weakSelf addToLog: msg]; };
-
-        unsigned int sbPort = [singBoxManager start];
-        if ( sbPort > 0 ) {
-            sidecarPortString = [NSString stringWithFormat: @"%u", sbPort];
-            sidecarTypeString = [NSString stringWithFormat: @"%d", SIDECAR_TYPE_SINGBOX];
-            [self addToLog: [NSString stringWithFormat: @"Sing-Box started on local port %u", sbPort]];
-        } else {
-            [self addToLog: @"Failed to start Sing-Box"];
-            [singBoxManager release];
-            singBoxManager = nil;
-            return nil;
-        }
-    } else if ( ydEnabled && forNow ) {
-        [self addToLog: @"Telemost/ydtun tunnel is enabled for this connection"];
-
-        if ( ydtunManager ) {
-            [ydtunManager stop];
-            [ydtunManager release];
-        }
-        ydtunManager = [[YdtunManager alloc] initWithDisplayName: [self displayName]];
-        __block VPNConnection * weakSelf = self;
-        ydtunManager.logBlock = ^(NSString * msg) { [weakSelf addToLog: msg]; };
-
-        unsigned int ydPort = [ydtunManager start];
-        if ( ydPort > 0 ) {
-            sidecarPortString = [NSString stringWithFormat: @"%u", ydPort];
-            sidecarTypeString = [NSString stringWithFormat: @"%d", SIDECAR_TYPE_TELEMOST];
-            [self addToLog: [NSString stringWithFormat: @"ydtun started on local port %u", ydPort]];
-        } else {
-            [self addToLog: @"Failed to start ydtun"];
-            [ydtunManager release];
-            ydtunManager = nil;
-            return nil;
-        }
-    }
-
     NSArray * args = [NSArray arrayWithObjects:
-                      @"start", [[lastPartOfPath(cfgPath) copy] autorelease], portString, useDNSArg, skipScrSec, altCfgLoc, noMonitor, bitMaskString, leasewatchOptions, ourOpenVPNVersion, [self managementPassword], sidecarPortString, sidecarTypeString, nil];
+                      @"start", [[lastPartOfPath(cfgPath) copy] autorelease], portString, useDNSArg, skipScrSec, altCfgLoc, noMonitor, bitMaskString, leasewatchOptions, ourOpenVPNVersion, [self managementPassword], nil];
 
     // IF THE NUMBER OF ARGUMENTS CHANGES:
     //    (1) Modify openvpnstart to use the new arguments
     //    (2) Change OPENVPNSTART_MAX_ARGC in defines.h to the maximum 'argc' for openvpnstart
     //        (That is, change it to one more than the number of entries in 'args' (because the path to openvpnstart is also an argument)
     //    (3) Change the constant integer in the next line to the same number
-#if 14 != OPENVPNSTART_MAX_ARGC
+#if 12 != OPENVPNSTART_MAX_ARGC
     #error "OPENVPNSTART_MAX_ARGC is not correct. It must be 1 more than the count of the 'args' array"
 #endif
 
@@ -4196,20 +4125,6 @@ static pthread_mutex_t lastStateMutex = PTHREAD_MUTEX_INITIALIZER;
     isHookedup       = FALSE;
     tryingToHookup   = FALSE;
 	disconnectWhenStateChanges = FALSE;
-
-    // Stop sidecar tunnels if running
-    if ( singBoxManager ) {
-        [self addToLog: @"Stopping Sing-Box VLESS/Reality tunnel"];
-        [singBoxManager stop];
-        [singBoxManager release];
-        singBoxManager = nil;
-    }
-    if ( ydtunManager ) {
-        [self addToLog: @"Stopping ydtun Telemost/WebRTC tunnel"];
-        [ydtunManager stop];
-        [ydtunManager release];
-        ydtunManager = nil;
-    }
 
     [gMC removeConnection:self];
 

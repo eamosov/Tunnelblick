@@ -116,9 +116,7 @@ CopyHelpersIntoResources() {
     cp -a "${BUILT_PRODUCTS_DIR}/tunnelblickd"               "${APP_PATH}/Contents/Resources/"
     cp -a "${BUILT_PRODUCTS_DIR}/tunnelblick-helper"         "${APP_PATH}/Contents/Resources/"
     cp -a "${BUILT_PRODUCTS_DIR}/update_signing_util"        "${APP_PATH}/Contents/Resources/"
-    cp -a "${BUILT_PRODUCTS_DIR}/batch-routes"              "${APP_PATH}/Contents/Resources/"
-    cp -a "${BUILT_PRODUCTS_DIR}/sing-box"                 "${APP_PATH}/Contents/Resources/"
-    cp -a "${BUILT_PRODUCTS_DIR}/ydtun"                   "${APP_PATH}/Contents/Resources/"
+    cp -a "${BUILT_PRODUCTS_DIR}/batch-routes"             "${APP_PATH}/Contents/Resources/"
 }
 
 CopyKextsIntoResources() {
@@ -178,7 +176,7 @@ CopyGitInformationToInfoPlist() {
 SetBuildDateAndTimeInInfoPlist() {
 
     # Set the build date and time
-    changeEntry "${APP_PATH}/Contents/Info.plist" TBBUILDTIMESTAMP   "$( date -j +%s )"
+    changeEntry "${APP_PATH}/Contents/Info.plist" TBBUILDTIMESTAMP   "$( date +%s )"
 }
 
 SetVersionNumberInNonNotarizedKexts() {
@@ -287,56 +285,29 @@ CreateOpenvpnDirectoryStructure() {
     # The folder for each vesion of OpenVPN is named "openvpn-x.x.x".
     # Each "openvpn-x.x.x"folder contains the openvpn binary and the openvpn-down-root.so binary
 
-    local default_openvpn
-    local last_openvpn
-    local d
-    local t
-    local u
+    local wrapper_version="openvpn-2.6.17-openssl-3.5.5"
+    local wrapper_path="${BUILT_PRODUCTS_DIR}/openvpn-wrapper"
+    local plugin_path="${BUILT_PRODUCTS_DIR}/openvpn-down-root.so"
 
     mkdir -p "${APP_PATH}/Contents/Resources/openvpn"
-    default_openvpn="z"
-    last_openvpn="z"
-    # DEFAULT OpenVPN will be the lowest version linked to OpenSSL with the following prefix:
-    default_openvpn_version_prefix="openvpn-2.6"
-    default_openssl_version_prefix="openssl-3.5"
+    rm -rf "${APP_PATH}/Contents/Resources/openvpn/${wrapper_version}"
+    mkdir -p "${APP_PATH}/Contents/Resources/openvpn/${wrapper_version}"
 
-    for d in $( ls "../third_party/products/openvpn" ) ; do
-
-        # Include this version of OpenVPN if it is not a beta, rc, or git version, or it's a debug build of Tunnelblick, or it is a Tunnelblick beta
-        # In other words, remove beta/rc/git versions of OpenVPN from non-debug builds of stable releases of Tunnelblick.
-        t="${d/_beta/}"
-        t="${t/_git/}"
-        t="${t/_rc/}"
-        u="${VERSION_STRING/beta/}"
-        if [ "$d" == "$t" ] || [ "${CONFIGURATION}" = "Debug" ] || [ "$u" != "$VERSION_STRING" ] ; then
-            mkdir -p "${APP_PATH}/Contents/Resources/openvpn/${d}"
-            cp "../third_party/products/openvpn/${d}/openvpn-executable" "${APP_PATH}/Contents/Resources/openvpn/${d}/openvpn"
-            cp "../third_party/products/openvpn/${d}/openvpn-down-root.so" "${APP_PATH}/Contents/Resources/openvpn/${d}/openvpn-down-root.so"
-            chmod 744 "${APP_PATH}/Contents/Resources/openvpn/${d}/openvpn-down-root.so"
-            last_openvpn="${d}"
-            if [ "${d}" \< "${default_openvpn}" ] ; then
-                if [ "${d}" != "${d/$default_openssl_version_prefix/xx}" ] ; then
-                    dovp_len=${#default_openvpn_version_prefix}
-                    if [ "${d:0:$dovp_len}" = "$default_openvpn_version_prefix" ] ; then
-                        echo "Setting default OpenVPN version to $d"
-                        default_openvpn="${d}"
-                    fi
-                fi
-            fi
-        else
-            echo "warning: Not including '$d' because it is not a stable release and this is not a Debug build and this is not a Tunnelblick beta"
-        fi
-    done
-
-    if [ "${default_openvpn}" != "z" ] ; then
-        rm -f "${APP_PATH}/Contents/Resources/openvpn/default"
-        ln -s "${default_openvpn}/openvpn" "${APP_PATH}/Contents/Resources/openvpn/default"
-    elif [ "${last_openvpn}" != "z" ] ; then
-        echo "warning: Could not find a version of OpenVPN matching '$default_openvpn_version_prefix' to use by default. Using $last_openvpn as the default"
-        ln -s "${last_openvpn}/openvpn" "${APP_PATH}/Contents/Resources/openvpn/default"
-    else
-        echo "error: Could not find a version of OpenVPN matching '$default_openvpn_version_prefix' to use by default"
+    if [ ! -f "${wrapper_path}" ] ; then
+        echo "error: Missing built wrapper binary: ${wrapper_path}"
+        return 1
     fi
+    if [ ! -f "${plugin_path}" ] ; then
+        echo "error: Missing built down-root plugin: ${plugin_path}"
+        return 1
+    fi
+
+    cp "${wrapper_path}" "${APP_PATH}/Contents/Resources/openvpn/${wrapper_version}/openvpn"
+    cp "${plugin_path}" "${APP_PATH}/Contents/Resources/openvpn/${wrapper_version}/openvpn-down-root.so"
+    chmod 744 "${APP_PATH}/Contents/Resources/openvpn/${wrapper_version}/openvpn-down-root.so"
+
+    rm -f "${APP_PATH}/Contents/Resources/openvpn/default"
+    ln -s "${wrapper_version}/openvpn" "${APP_PATH}/Contents/Resources/openvpn/default"
 }
 
 CreateLocalizedInfoPlistStringsFiles() {
@@ -409,7 +380,7 @@ UpdateAllInfoPlistStringsFilesWithCurrentYear() {
     local yyyy
     local filePath
 
-    yyyy="$( date -j +%Y )"
+    yyyy="$( date +%Y )"
 
     pushd "${APP_PATH}/Contents/Resources" > /dev/null
 

@@ -129,8 +129,6 @@ sign_app () {
         fi
 
         codesign_v_t_or "$app_path/Contents/MacOS/Tunnelblick.debug.dylib"
-        codesign_v_t_or "$app_path/Contents/Resources/sing-box"
-        codesign_v_t_or "$app_path/Contents/Resources/ydtun"
         codesign_v_t_or "$app_path/Contents/Resources/batch-routes"
         codesign_v_t_or "$app_path/Contents/Resources/atsystemstart"
         codesign_v_t_or "$app_path/Contents/Resources/TunnelblickUpdateHelper"

@@ -663,7 +663,6 @@ remove_system_configuration_items() {
 		remove State:/Network/OpenVPN/DNS
 		remove State:/Network/OpenVPN/SMB
 		remove State:/Network/OpenVPN
-		remove State:/Network/Service/openvpn-corp-dns/DNS
 		quit
 EOF
 }
@@ -693,8 +692,6 @@ ARG_EXTRA_LOGGING=false
 ARG_MONITOR_NETWORK_CONFIGURATION=false
 ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT=false
 ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT_UNEXPECTED=false
-ARG_SKIP_DNS=false
-
 while [ $# -ne 0 ] ; do
 
 	if [ "${1:0:1}" != "-" ] ; then				# Tunnelblick arguments start with "-" and come first
@@ -712,8 +709,6 @@ while [ $# -ne 0 ] ; do
 	elif [ "$1" = "-r" ] ; then     ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT=true
 
 	elif [ "$1" = "-ru" ] ; then	ARG_RESET_PRIMARY_INTERFACE_ON_DISCONNECT_UNEXPECTED=true
-
-	elif [ "$1" = "-S" ] ; then		ARG_SKIP_DNS=true
 
 	fi
 
@@ -766,44 +761,28 @@ else
 
 	profile_or_execute run_prefix_or_suffix 'down-prefix.sh'
 
-	# Delete routes via batch-routes tool if route-noexec was active
-	if [ -n "$TUNNELBLICK_BATCH_ROUTES" ] && [ -x "$TUNNELBLICK_BATCH_ROUTES" ]; then
-		log_message "Executing batch route deletion..."
-		"$TUNNELBLICK_BATCH_ROUTES" delete
-		log_message "Batch route deletion completed with status $?"
-	fi
+	# Note: The following command will exit this script if the info cannot be accessed
+	profile_or_execute get_info_saved_by_up_script
 
-	if $ARG_SKIP_DNS ; then
+	profile_or_execute get_primary_service_id_and_warn_if_it_changed
 
-		# -S flag: skip all DNS/SMB/network restoration, only route cleanup was needed (done above)
-		log_message "Skipping DNS/SMB restoration (-S flag: 'Do not set nameserver' mode, routes only)"
+	profile_or_execute remove_leasewatcher
 
-	else
+	profile_or_execute release_dhcp
 
-		# Note: The following command will exit this script if the info cannot be accessed
-		profile_or_execute get_info_saved_by_up_script
+	profile_or_execute restore_disabled_network_services
 
-		profile_or_execute get_primary_service_id_and_warn_if_it_changed
+	profile_or_execute restore_network_settings
 
-		profile_or_execute remove_leasewatcher
+	profile_or_execute restore_ipv6
 
-		profile_or_execute release_dhcp
+	profile_or_execute debug_log_current_network_settings
 
-		profile_or_execute restore_disabled_network_services
+	profile_or_execute flushDNSCache
 
-		profile_or_execute restore_network_settings
+	profile_or_execute resetPrimaryInterface
 
-		profile_or_execute restore_ipv6
-
-		profile_or_execute debug_log_current_network_settings
-
-		profile_or_execute flushDNSCache
-
-		profile_or_execute resetPrimaryInterface
-
-		profile_or_execute remove_system_configuration_items
-
-	fi
+	profile_or_execute remove_system_configuration_items
 
 	profile_or_execute run_prefix_or_suffix 'down-suffix.sh'
 
