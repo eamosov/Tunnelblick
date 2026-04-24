@@ -1467,7 +1467,15 @@ static void killOneOpenvpn(pid_t pid) {
             if (  pid == process_pid  ) {
 
                 char* process_name = info[i].kp_proc.p_comm;
-                if (  strcmp(process_name, "openvpn") == 0  ) {
+                BOOL hasOpenVPNPrefix = (strncmp(process_name, "openvpn", strlen("openvpn")) == 0);
+                BOOL isOpenVPNStart = (strcmp(process_name, "openvpnstart") == 0);
+                BOOL isOpenVPNHelper = (strcmp(process_name, "openvpn-down-root") == 0);
+                BOOL isMainOpenVPN = (   (strcmp(process_name, "openvpn") == 0)
+                                      || (strncmp(process_name, "openvpn-", strlen("openvpn-")) == 0)  );
+                if (   hasOpenVPNPrefix
+                    && ! isOpenVPNStart
+                    && ! isOpenVPNHelper
+                    && isMainOpenVPN  ) {
 
                     free(info);
 

@@ -133,6 +133,7 @@ extern TBUserDefaults * gTbDefaults;
 
     NSMutableArray * retArray = [NSMutableArray arrayWithCapacity: 2];
     const char* processName = "openvpn";
+    const char* helperName = "openvpn-down-root";
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
     struct kinfo_proc* info;
     size_t length;
@@ -154,12 +155,18 @@ extern TBUserDefaults * gTbDefaults;
     for (i = 0; i < count; i++) {
         char* command = info[i].kp_proc.p_comm;
         pid_t pid = info[i].kp_proc.p_pid;
-        if (strncmp(processName, command, MAXCOMLEN)==0) {
+        BOOL hasOpenVPNPrefix = (strncmp(command, processName, strlen(processName)) == 0);
+        BOOL isOpenVPNStart = (strncmp(command, "openvpnstart", MAXCOMLEN) == 0);
+        BOOL isOpenVPNHelper = (strncmp(command, helperName, MAXCOMLEN) == 0);
+        BOOL isMainOpenVPN = (   (strcmp(command, processName) == 0)
+                              || (strncmp(command, "openvpn-", strlen("openvpn-")) == 0)  );
+
+        if (  hasOpenVPNPrefix
+           && ! isOpenVPNStart
+           && ! isOpenVPNHelper  ) {
             if (   (! onlyMain)
-                || (strlen(command) == strlen(processName))  ) {
-                if (  strncmp(processName, "openvpnstart", MAXCOMLEN) != 0  ) {
-                    [retArray addObject: [NSNumber numberWithInt: (int) pid]];
-                }
+                || isMainOpenVPN  ) {
+                [retArray addObject: [NSNumber numberWithInt: (int) pid]];
             }
         }
     }
