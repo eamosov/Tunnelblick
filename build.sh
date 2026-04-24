@@ -125,6 +125,12 @@ check_third_party() {
     log "Third-party products found"
 }
 
+prepare_openvpn_wrapper() {
+    log "Preparing openvpn wrapper build products..."
+    BUILT_PRODUCTS_DIR="$BUILD_DIR/$CONFIGURATION" \
+        bash "$PROJECT_DIR/build-openvpn.sh"
+}
+
 # Build Tunnelblick with xcodebuild
 build_app() {
     log "Building Tunnelblick ($CONFIGURATION)..."
@@ -287,6 +293,8 @@ main() {
     else
         build_third_party
     fi
+
+    prepare_openvpn_wrapper
 
     build_app
     verify_build
