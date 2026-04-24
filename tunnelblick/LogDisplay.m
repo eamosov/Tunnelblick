@@ -96,8 +96,6 @@ extern TunnelblickInfo * gTbInfo;
 
 -(void)         pruneLog;
 
--(NSMutableString *) summarizePushReplyLines: (NSMutableString *) lines;
-
 @end
 
 @implementation LogDisplay
@@ -1081,110 +1079,7 @@ TBSYNTHESIZE_OBJECT_GET(retain, NSString *,         lastEntryTime)
 
     *positionPtr += lengthOfLinesUsed;
 
-    // Anti-flood: summarize PUSH_REPLY route messages
-    if (  [linesToReturn rangeOfString: @"PUSH_REPLY,"].location != NSNotFound  ) {
-        linesToReturn = [self summarizePushReplyLines: linesToReturn];
-    }
-
     return linesToReturn;
-}
-
--(NSMutableString *) summarizePushReplyLines: (NSMutableString *) lines {
-
-    // Replaces verbose PUSH_REPLY route listings with a compact summary.
-    // Preserves non-route PUSH options (dhcp-option, redirect-gateway, etc.)
-    // and shows route counts grouped by gateway type.
-
-    NSArray * lineArray = [lines componentsSeparatedByString: @"\n"];
-    NSMutableString * result = [NSMutableString stringWithCapacity: 2000];
-    NSUInteger totalNetGatewayRoutes = 0;
-    NSUInteger totalVpnGatewayRoutes = 0;
-    NSMutableArray * nonRouteOptions = [NSMutableArray arrayWithCapacity: 20];
-    NSString * dateTimePrefix = nil;
-    BOOL hasPushReply = NO;
-
-    for (  NSString * oneLine in lineArray  ) {
-        if (  [oneLine length] == 0  ) {
-            continue;
-        }
-
-        NSRange pushReplyRange = [oneLine rangeOfString: @"PUSH_REPLY,"];
-        if (  pushReplyRange.location == NSNotFound  ) {
-            // Not a PUSH_REPLY line, keep as-is
-            [result appendString: oneLine];
-            [result appendString: @"\n"];
-            continue;
-        }
-
-        hasPushReply = YES;
-
-        // Extract date/time prefix from first PUSH_REPLY line
-        if (  dateTimePrefix == nil  ) {
-            NSRange pushMsgRange = [oneLine rangeOfString: @"PUSH: Received control message: '"];
-            if (  pushMsgRange.location != NSNotFound  ) {
-                dateTimePrefix = [oneLine substringToIndex: pushMsgRange.location];
-            } else {
-                dateTimePrefix = @"";
-            }
-        }
-
-        // Extract the PUSH_REPLY content (after 'PUSH_REPLY,')
-        NSString * pushContent = [oneLine substringFromIndex: pushReplyRange.location + pushReplyRange.length];
-        // Remove trailing quote and push-continuation marker
-        pushContent = [pushContent stringByReplacingOccurrencesOfString: @"'" withString: @""];
-
-        NSArray * options = [pushContent componentsSeparatedByString: @","];
-        for (  NSString * option in options  ) {
-            NSString * trimmed = [option stringByTrimmingCharactersInSet: [NSCharacterSet whitespaceCharacterSet]];
-            if (  [trimmed length] == 0  ) {
-                continue;
-            }
-            if (  [trimmed hasPrefix: @"push-continuation"]  ) {
-                continue;
-            }
-            if (  [trimmed hasPrefix: @"route "]  ) {
-                if (  [trimmed hasSuffix: @"net_gateway"]  ) {
-                    totalNetGatewayRoutes++;
-                } else {
-                    totalVpnGatewayRoutes++;
-                }
-            } else {
-                // Non-route option (dhcp-option, redirect-gateway, etc.)
-                if (  ! [nonRouteOptions containsObject: trimmed]  ) {
-                    [nonRouteOptions addObject: trimmed];
-                }
-            }
-        }
-    }
-
-    if (  ! hasPushReply  ) {
-        return lines;
-    }
-
-    // Build summary
-    if (  [nonRouteOptions count] > 0  ) {
-        [result appendFormat: @"%sPUSH options: %@\n",
-            [dateTimePrefix UTF8String],
-            [nonRouteOptions componentsJoinedByString: @", "]];
-    }
-
-    NSMutableArray * routeParts = [NSMutableArray arrayWithCapacity: 2];
-    if (  totalNetGatewayRoutes > 0  ) {
-        [routeParts addObject: [NSString stringWithFormat: @"%lu via net_gateway (bypass VPN)", (unsigned long)totalNetGatewayRoutes]];
-    }
-    if (  totalVpnGatewayRoutes > 0  ) {
-        [routeParts addObject: [NSString stringWithFormat: @"%lu via vpn_gateway (through VPN)", (unsigned long)totalVpnGatewayRoutes]];
-    }
-
-    NSUInteger totalRoutes = totalNetGatewayRoutes + totalVpnGatewayRoutes;
-    if (  totalRoutes > 0  ) {
-        [result appendFormat: @"%sPUSH routes: %lu total (%@)\n",
-            [dateTimePrefix UTF8String],
-            (unsigned long)totalRoutes,
-            [routeParts componentsJoinedByString: @", "]];
-    }
-
-    return result;
 }
 
 -(NSUInteger) logDateTimeLength: (NSString *) line {
