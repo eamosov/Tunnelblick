@@ -285,12 +285,12 @@ CreateOpenvpnDirectoryStructure() {
     # The folder for each vesion of OpenVPN is named "openvpn-x.x.x".
     # Each "openvpn-x.x.x"folder contains the openvpn binary and the openvpn-down-root.so binary
 
-    local wrapper_version="openvpn-2.6.17-openssl-3.5.5"
+    local wrapper_version="openvpn-2.7.2-openssl-3.5.5"
     local wrapper_path="${BUILT_PRODUCTS_DIR}/openvpn-wrapper"
     local plugin_path="${BUILT_PRODUCTS_DIR}/openvpn-down-root.so"
 
+    rm -rf "${APP_PATH}/Contents/Resources/openvpn"
     mkdir -p "${APP_PATH}/Contents/Resources/openvpn"
-    rm -rf "${APP_PATH}/Contents/Resources/openvpn/${wrapper_version}"
     mkdir -p "${APP_PATH}/Contents/Resources/openvpn/${wrapper_version}"
 
     if [ ! -f "${wrapper_path}" ] ; then
