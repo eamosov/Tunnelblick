@@ -213,7 +213,7 @@ static void printUsageMessageAndExitOpenvpnstart(void) {
             "./openvpnstart updateTunnelblick  updateSignature  username  versionAndBuildString  tunnelblickPidString\n\n"
             "               to update Tunnelblick from /Users/username/Library/Application Support/Tunnelblick/tunnelblick-update.zip.\n\n"
 
-            "./openvpnstart start  configName  mgtPort  [useScripts  [skipScrSec  [cfgLocCode  [noMonitor  [bitMask  [leasewatchOptions [openvpnVersion] ]]  ]  ]  ]  ]\n\n"
+            "./openvpnstart start  configName  mgtPort  [useScripts  [skipScrSec  [cfgLocCode  [noMonitor  [bitMask  [leasewatchOptions [openvpnVersion [connectionType] ]]]  ]  ]  ]  ]\n\n"
             "               to load the net.tunnelblick.tun and/or net.tunnelblick.tap kexts and start OpenVPN with the specified configuration file and options.\n"
             "               foo.tun kext will be unloaded before loading net.tunnelblick.tun, and foo.tap will be unloaded before loading net.tunnelblick.tap.\n\n"
 
@@ -954,7 +954,7 @@ static NSString * managementPasswordFilePath(NSString * configName) {
 
 //**************************************************************************************************************************
 
-static int runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(NSString * thePath, NSArray * theArguments, mode_t permissions, NSString * configName, unsigned configLocCode, NSString * managementPassword, NSString ** stdOut, NSString ** stdErr) {
+static int runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(NSString * thePath, NSArray * theArguments, mode_t permissions, NSString * configName, unsigned configLocCode, NSString * managementPassword, NSDictionary * additionalEnv, NSString ** stdOut, NSString ** stdErr) {
 
 	// Runs a program as root
 	//
@@ -1074,7 +1074,7 @@ static int runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(NS
 
     [task setCurrentDirectoryPath: @"/private/tmp"];
 
-    [task setEnvironment: getSafeEnvironment(configName, configLocCode, nil)];
+    [task setEnvironment: getSafeEnvironment(configName, configLocCode, additionalEnv)];
 
     becomeRoot([NSString stringWithFormat: @"launch %@", [thePath lastPathComponent]]);
 
@@ -1134,26 +1134,27 @@ static int runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(NS
 //**************************************************************************************************************************
 static int runAsRootWithConfigNameAndLocCode(NSString * thePath, NSArray * theArguments, mode_t permissions, NSString * configName, unsigned configLocCode) {
 
-    return runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(thePath, theArguments, permissions, configName, configLocCode, nil, nil, nil);
+    return runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(thePath, theArguments, permissions, configName, configLocCode, nil, nil, nil, nil);
 
 }
 
 //**************************************************************************************************************************
 
 static int runAsRoot(NSString * thePath, NSArray * theArguments, mode_t permissions) {
-	return runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(thePath, theArguments, permissions, nil, 0, nil, nil, nil);
+	return runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(thePath, theArguments, permissions, nil, 0, nil, nil, nil, nil);
 }
 
 //**************************************************************************************************************************
 
 static int runAsRootReturnOutput(NSString * thePath, NSArray * theArguments, mode_t permissions, NSString ** stdOut, NSString ** stdErr) {
-    return runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(thePath, theArguments, permissions, nil, 0, nil, stdOut, stdErr);
+    return runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(thePath, theArguments, permissions, nil, 0, nil, nil, stdOut, stdErr);
 }
 
 //**************************************************************************************************************************
 
 static void validateConfigName(NSString * name);
 static void validateCfgLocCode(unsigned cfgLocCode);
+static void validateConnectionType(NSString * s);
 
 static int runScript(NSString * scriptName, int argc, char * argv[]) {
 	// Runs one of the following scripts: connected.sh, reconnecting.sh, or post-disconnect.sh
@@ -2531,7 +2532,8 @@ static int startVPN(NSString * configFile,
                     unsigned   bitMask,
                     NSString * leasewatchOptions,
                     NSString * openvpnVersion,
-                    NSString * managementPassword) {
+                    NSString * managementPassword,
+                    NSString * connectionType) {
 
     // Tries to start an openvpn connection (up to ten times if not starting from GUI).
     // Returns OPENVPNSTART_COULD_NOT_START_OPENVPN (having output a message to stderr) if any other error occurs
@@ -2761,6 +2763,10 @@ static int startVPN(NSString * configFile,
     [arguments addObject: @"--setenv"];
     [arguments addObject: @"IV_SSO"];
     [arguments addObject: @"webauth,crtext"];
+
+    [arguments addObject: @"--setenv"];
+    [arguments addObject: @"TUNNELBLICK_CONNECTION_TYPE"];
+    [arguments addObject: connectionType];
 
     if (  (bitMask & OPENVPNSTART_TEST_MTU) != 0  ) {
         [arguments addObject: @"--mtu-test"];
@@ -3240,7 +3246,7 @@ static int startVPN(NSString * configFile,
         }
     }
 
-    status = runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(openvpnPath, arguments, 0755, configFile, 0, managementPassword, nil, nil);
+    status = runAsRootWithConfigNameAndLocCodeAndmanagementPasswordReturnOutput(openvpnPath, arguments, 0755, configFile, 0, managementPassword, @{@"TUNNELBLICK_CONNECTION_TYPE": connectionType}, nil, nil);
 
     NSMutableString * displayCmdLine = [NSMutableString stringWithFormat: @"     %@", openvpnPath];
     unsigned i;
@@ -3421,6 +3427,18 @@ static void validateOpenvpnVersion(NSString * s) {
         fprintf(stderr, "the openvpnVersion argument may only contain a-z, A-Z, 0-9, periods, underscores, and hyphens\n");
         exitOpenvpnstart(241);
     }
+}
+
+static void validateConnectionType(NSString * s) {
+
+    if (   [s isEqualToString: @"direct"]
+        || [s isEqualToString: @"singbox"]
+        || [s isEqualToString: @"telemost"] ) {
+        return;
+    }
+
+    fprintf(stderr, "Invalid connectionType '%s'\n", [s UTF8String]);
+    exitOpenvpnstart(241);
 }
 
 static NSString * validateEnvironment(void) {
@@ -3851,6 +3869,7 @@ int main(int argc, char * argv[]) {
             NSString * leasewatchOptions = @"-i";
             NSString * openvpnVersion = @"";
             NSString * managementPassword = @"";
+            NSString * connectionType = @"direct";
 
 			if (  (argc > 3) && (argc <= OPENVPNSTART_MAX_ARGC)  ) {
 
@@ -3864,6 +3883,7 @@ int main(int argc, char * argv[]) {
                 if (  (argc >  9) && (strlen(argv[ 9]) < 16)                          ) leasewatchOptions = [NSString stringWithUTF8String: argv[9]];
                 if (  (argc > 10) && (strlen(argv[10]) < 128)                         ) openvpnVersion    = [NSString stringWithUTF8String: argv[10]];
                 if (  (argc > 11) && (strlen(argv[11]) < 128)                         ) managementPassword = [NSString stringWithUTF8String: argv[11]];
+                if (  (argc > 12) && (strlen(argv[12]) < 32)                          ) connectionType = [NSString stringWithUTF8String: argv[12]];
                 validateConfigName(configFile);
                 validatePort(port);
                 validateUseScripts(useScripts);
@@ -3871,6 +3891,7 @@ int main(int argc, char * argv[]) {
                 validateBitmask(bitMask);
                 validateLeasewatchOptions(leasewatchOptions);
                 validateOpenvpnVersion(openvpnVersion);
+                validateConnectionType(connectionType);
 
                 gStartArgs = [[NSString stringWithFormat: @"%u_%u_%u_%u_%u", useScripts, skipScrSec, cfgLocCode, noMonitor, bitMask]
                               retain];
@@ -3912,7 +3933,8 @@ int main(int argc, char * argv[]) {
                                        bitMask,
                                        leasewatchOptions,
                                        openvpnVersion,
-                                       managementPassword);
+                                       managementPassword,
+                                       connectionType);
 
                     if (   (retCode == 0)               // If succeeded, return indicating that success
                         || ((bitMask & OPENVPNSTART_NOT_WHEN_COMPUTER_STARTS) != 0)  ) {// If failed and are using the GUI, return the failure

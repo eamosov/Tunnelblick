@@ -3554,15 +3554,27 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 
     NSString * ourOpenVPNVersion = [gTbInfo.allOpenvpnOpenssslVersions objectAtIndex: finalOpenvpnIx];
 
+    NSString * connectionType = @"direct";
+    {
+        NSString * prefix = [[self displayName] stringByAppendingString: @"-"];
+        BOOL sbEnabled = [gTbDefaults boolForKey: [prefix stringByAppendingString: @"singBoxEnable"]];
+        BOOL ydEnabled = [gTbDefaults boolForKey: [prefix stringByAppendingString: @"ydtunEnable"]];
+        if ( sbEnabled ) {
+            connectionType = @"singbox";
+        } else if ( ydEnabled ) {
+            connectionType = @"telemost";
+        }
+    }
+
     NSArray * args = [NSArray arrayWithObjects:
-                      @"start", [[lastPartOfPath(cfgPath) copy] autorelease], portString, useDNSArg, skipScrSec, altCfgLoc, noMonitor, bitMaskString, leasewatchOptions, ourOpenVPNVersion, [self managementPassword], nil];
+                      @"start", [[lastPartOfPath(cfgPath) copy] autorelease], portString, useDNSArg, skipScrSec, altCfgLoc, noMonitor, bitMaskString, leasewatchOptions, ourOpenVPNVersion, [self managementPassword], connectionType, nil];
 
     // IF THE NUMBER OF ARGUMENTS CHANGES:
     //    (1) Modify openvpnstart to use the new arguments
     //    (2) Change OPENVPNSTART_MAX_ARGC in defines.h to the maximum 'argc' for openvpnstart
     //        (That is, change it to one more than the number of entries in 'args' (because the path to openvpnstart is also an argument)
     //    (3) Change the constant integer in the next line to the same number
-#if 12 != OPENVPNSTART_MAX_ARGC
+#if 13 != OPENVPNSTART_MAX_ARGC
     #error "OPENVPNSTART_MAX_ARGC is not correct. It must be 1 more than the count of the 'args' array"
 #endif
 

@@ -30,7 +30,7 @@
 #define DISPLAY_NAME_LENGTH_MAX 512
 
 // The maximum 'argc' for openvpnstart
-#define OPENVPNSTART_MAX_ARGC 12
+#define OPENVPNSTART_MAX_ARGC 13
 
 // The "admin" and "staff" group IDs
 #define ADMIN_GROUP_ID 80
