@@ -1,6 +1,0 @@
-[submodule "third_party/ydtun"]
-	path = third_party/ydtun
-	url = git@github.com:eamosov/ydtun.git
-[submodule "third_party/openvpn"]
-	path = third_party/openvpn
-	url = git@github.com:eamosov/openvpn.git

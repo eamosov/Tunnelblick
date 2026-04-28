@@ -280,12 +280,6 @@ main() {
         clean
     fi
 
-    # Initialize git submodules (ydtun, etc.)
-    if [ -f "$SCRIPT_DIR/.gitmodules" ]; then
-        log "Initializing git submodules..."
-        git -C "$SCRIPT_DIR" submodule update --init --recursive
-    fi
-
     mkdir -p "$BUILD_DIR"
 
     if $SKIP_THIRD_PARTY; then
