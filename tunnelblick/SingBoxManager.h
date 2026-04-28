@@ -47,7 +47,8 @@
 // Returns YES if the line is a Tunnelblick custom directive (sb_*, tb_*, or telemost_*, bare or setenv).
 + (BOOL) isTunnelblickDirective: (NSString *) trimmedLine;
 
-// Parse sb_*/tb_* directives from OpenVPN config string. Returns YES if sb_enable is true.
+// Parse sb_*/tb_* directives from OpenVPN config string. Returns YES if sb_enable is true,
+// but does not store that value in preferences; GUI mode selection is controlled by Connection Type.
 // Supports both bare "sb_key value" and "setenv sb_key value" / "setenv tb_key value" formats.
 + (BOOL) parseSingBoxDirectivesFromConfig: (NSString *) configContents
                           intoPreferences: (NSMutableDictionary *) prefs;

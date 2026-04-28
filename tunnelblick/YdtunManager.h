@@ -34,7 +34,8 @@
 // Returns YES if the line is a telemost_ directive (bare or setenv).
 + (BOOL) isYdtunDirective: (NSString *) trimmedLine;
 
-// Parse telemost_* directives from OpenVPN config string. Returns YES if telemost_enable is true.
+// Parse telemost_* directives from OpenVPN config string. Returns YES if telemost_enable is true,
+// but does not store that value in preferences; GUI mode selection is controlled by Connection Type.
 + (BOOL) parseYdtunDirectivesFromConfig: (NSString *) configContents
                          intoPreferences: (NSMutableDictionary *) prefs;
 

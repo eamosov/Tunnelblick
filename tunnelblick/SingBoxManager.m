@@ -117,7 +117,6 @@ extern TBUserDefaults * gTbDefaults;
             if ( [key isEqualToString: @"sb_enable"] ) {
                 sbEnable = ( [value caseInsensitiveCompare: @"true"] == NSOrderedSame
                             || [value isEqualToString: @"1"] );
-                [prefs setObject: [NSNumber numberWithBool: sbEnable] forKey: @"singBoxEnable"];
             } else if ( [key isEqualToString: @"sb_override_address"] ) {
                 [prefs setObject: value forKey: @"singBoxOverrideAddress"];
             } else if ( [key isEqualToString: @"sb_override_port"] ) {
@@ -132,6 +131,18 @@ extern TBUserDefaults * gTbDefaults;
                 [prefs setObject: value forKey: @"singBoxTlsPublicKey"];
             } else if ( [key isEqualToString: @"sb_tls_short_id"] ) {
                 [prefs setObject: value forKey: @"singBoxTlsShortId"];
+            } else if ( [key isEqualToString: @"sb_ws_server_name"] ) {
+                [prefs setObject: value forKey: @"singBoxWsServerName"];
+            } else if ( [key isEqualToString: @"sb_ws_path"] ) {
+                [prefs setObject: value forKey: @"singBoxWsPath"];
+            } else if ( [key isEqualToString: @"sb_hy2_password"] ) {
+                [prefs setObject: value forKey: @"singBoxHy2Password"];
+            } else if ( [key isEqualToString: @"sb_hy2_server_name"] ) {
+                [prefs setObject: value forKey: @"singBoxHy2ServerName"];
+            } else if ( [key isEqualToString: @"sb_hy2_obfs_type"] ) {
+                [prefs setObject: value forKey: @"singBoxHy2ObfsType"];
+            } else if ( [key isEqualToString: @"sb_hy2_obfs_password"] ) {
+                [prefs setObject: value forKey: @"singBoxHy2ObfsPassword"];
             } else if ( [key isEqualToString: @"sb_socks_enabled"] ) {
                 BOOL enabled = ( [value caseInsensitiveCompare: @"true"] == NSOrderedSame
                                 || [value isEqualToString: @"1"] );

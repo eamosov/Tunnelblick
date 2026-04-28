@@ -1216,6 +1216,12 @@ name = newValue;                                    \
 @"-singBoxTlsServerName",	\
 @"-singBoxTlsPublicKey",	\
 @"-singBoxTlsShortId",	\
+@"-singBoxWsServerName",	\
+@"-singBoxWsPath",	\
+@"-singBoxHy2Password",	\
+@"-singBoxHy2ServerName",	\
+@"-singBoxHy2ObfsType",	\
+@"-singBoxHy2ObfsPassword",	\
 @"-singBoxOriginalRemoteAddress",	\
 @"-singBoxOriginalRemotePort",	\
 @"-singBoxOriginalProto",	\

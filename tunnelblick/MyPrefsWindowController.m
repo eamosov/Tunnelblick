@@ -51,6 +51,8 @@
 #import "TrustedWiFiTableHelper.h"
 #import "UtilitiesView.h"
 #import "VPNConnection.h"
+#import "SingBoxManager.h"
+#import "YdtunManager.h"
 
 extern NSArray        * gConfigurationPreferences;
 extern NSString       * gDeployPath;
@@ -2589,21 +2591,61 @@ static BOOL firstTimeShowingWindow = TRUE;
 -(BOOL) hasMandatorySingBoxFields: (VPNConnection *) connection {
 
     NSString * prefix = [[connection displayName] stringByAppendingString: @"-"];
-    return (
-           [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxUUID"]]
-        && [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxTlsServerName"]]
-        && [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxTlsPublicKey"]]
-        && [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxTlsShortId"]]
-        && ( [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxOriginalRemoteAddress"]]
-            || [gTbDefaults stringForKey: [prefix stringByAppendingString: @"singBoxOverrideAddress"]] )
-    );
+    NSMutableDictionary * prefs = [NSMutableDictionary dictionary];
+    NSString * remoteAddr = nil;
+    NSString * cfgContents = [connection condensedSanitizedConfigurationFileContents];
+    if ( cfgContents ) {
+        [SingBoxManager parseSingBoxDirectivesFromConfig: cfgContents intoPreferences: prefs];
+        [SingBoxManager stripSingBoxDirectivesFromConfig: cfgContents remoteAddress: &remoteAddr remotePort: NULL proto: NULL];
+    }
+
+    NSString * overrideAddress = [prefs objectForKey: @"singBoxOverrideAddress"];
+    NSString * uuid            = [prefs objectForKey: @"singBoxUUID"];
+    NSString * tlsServerName   = [prefs objectForKey: @"singBoxTlsServerName"];
+    NSString * tlsPublicKey    = [prefs objectForKey: @"singBoxTlsPublicKey"];
+    NSString * tlsShortId      = [prefs objectForKey: @"singBoxTlsShortId"];
+    NSString * wsServerName    = [prefs objectForKey: @"singBoxWsServerName"];
+    NSString * wsPath          = [prefs objectForKey: @"singBoxWsPath"];
+    NSString * hy2Password     = [prefs objectForKey: @"singBoxHy2Password"];
+    NSString * hy2ServerName   = [prefs objectForKey: @"singBoxHy2ServerName"];
+    NSString * hy2ObfsType     = [prefs objectForKey: @"singBoxHy2ObfsType"];
+    NSString * hy2ObfsPassword = [prefs objectForKey: @"singBoxHy2ObfsPassword"];
+
+    if ( overrideAddress ) [gTbDefaults setObject: overrideAddress forKey: [prefix stringByAppendingString: @"singBoxOverrideAddress"]];
+    if ( uuid            ) [gTbDefaults setObject: uuid            forKey: [prefix stringByAppendingString: @"singBoxUUID"]];
+    if ( tlsServerName   ) [gTbDefaults setObject: tlsServerName   forKey: [prefix stringByAppendingString: @"singBoxTlsServerName"]];
+    if ( tlsPublicKey    ) [gTbDefaults setObject: tlsPublicKey    forKey: [prefix stringByAppendingString: @"singBoxTlsPublicKey"]];
+    if ( tlsShortId      ) [gTbDefaults setObject: tlsShortId      forKey: [prefix stringByAppendingString: @"singBoxTlsShortId"]];
+    if ( wsServerName    ) [gTbDefaults setObject: wsServerName    forKey: [prefix stringByAppendingString: @"singBoxWsServerName"]];
+    if ( wsPath          ) [gTbDefaults setObject: wsPath          forKey: [prefix stringByAppendingString: @"singBoxWsPath"]];
+    if ( hy2Password     ) [gTbDefaults setObject: hy2Password     forKey: [prefix stringByAppendingString: @"singBoxHy2Password"]];
+    if ( hy2ServerName   ) [gTbDefaults setObject: hy2ServerName   forKey: [prefix stringByAppendingString: @"singBoxHy2ServerName"]];
+    if ( hy2ObfsType     ) [gTbDefaults setObject: hy2ObfsType     forKey: [prefix stringByAppendingString: @"singBoxHy2ObfsType"]];
+    if ( hy2ObfsPassword ) [gTbDefaults setObject: hy2ObfsPassword forKey: [prefix stringByAppendingString: @"singBoxHy2ObfsPassword"]];
+    if ( remoteAddr      ) [gTbDefaults setObject: remoteAddr      forKey: [prefix stringByAppendingString: @"singBoxOriginalRemoteAddress"]];
+
+    BOOL hasServerAddress = (   (overrideAddress && [overrideAddress length] > 0)
+                             || (remoteAddr && [remoteAddr length] > 0)  );
+    BOOL hasReality = ( uuid && tlsServerName && tlsPublicKey && tlsShortId );
+    BOOL hasWebSocket = ( uuid && wsServerName );
+    BOOL hasHy2Obfs = (   ( ! hy2ObfsType && ! hy2ObfsPassword )
+                       || ( hy2ObfsType && hy2ObfsPassword )  );
+    BOOL hasHysteria2 = ( hy2Password && hy2ServerName && hasHy2Obfs );
+
+    return ( hasServerAddress && (hasReality || hasWebSocket || hasHysteria2) );
 }
 
 // Returns YES if the mandatory ydtun fields are present for the given connection
 -(BOOL) hasMandatoryYdtunFields: (VPNConnection *) connection {
 
     NSString * prefix = [[connection displayName] stringByAppendingString: @"-"];
-    NSString * urls = [gTbDefaults stringForKey: [prefix stringByAppendingString: @"ydtunTelemostUrls"]];
+    NSMutableDictionary * prefs = [NSMutableDictionary dictionary];
+    [YdtunManager parseYdtunDirectivesFromConfig: [connection condensedSanitizedConfigurationFileContents]
+                                 intoPreferences: prefs];
+    NSString * urls = [prefs objectForKey: @"ydtunTelemostUrls"];
+    if ( urls && [urls length] > 0 ) {
+        [gTbDefaults setObject: urls forKey: [prefix stringByAppendingString: @"ydtunTelemostUrls"]];
+    }
     return ( urls && [urls length] > 0 );
 }
 

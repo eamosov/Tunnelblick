@@ -3291,7 +3291,7 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
         NSString * cfgContents = [self condensedSanitizedConfigurationFileContents];
         if ( cfgContents ) {
             NSMutableDictionary * sbPrefs = [NSMutableDictionary dictionary];
-            BOOL sbEnabled = [SingBoxManager parseSingBoxDirectivesFromConfig: cfgContents intoPreferences: sbPrefs];
+            [SingBoxManager parseSingBoxDirectivesFromConfig: cfgContents intoPreferences: sbPrefs];
 
             // Also extract original remote address/port and proto
             NSString * remoteAddr = nil;
@@ -3301,12 +3301,8 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 
             NSString * prefix = [[self displayName] stringByAppendingString: @"-"];
 
-            // Save sb_* field preferences (but NOT singBoxEnable — that is controlled by UI)
-            // Set singBoxEnable only on first parse (when the key does not exist yet)
-            NSString * sbEnableKey = [prefix stringByAppendingString: @"singBoxEnable"];
-            if ( [gTbDefaults objectForKey: sbEnableKey] == nil ) {
-                [gTbDefaults setBool: sbEnabled forKey: sbEnableKey];
-            }
+            // Save sb_* field preferences. Connection type is controlled only by the GUI selector,
+            // not by sb_enable from the .ovpn file.
 
             NSString * val;
             if ( (val = [sbPrefs objectForKey: @"singBoxOverrideAddress"]) ) {
@@ -3330,6 +3326,24 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
             if ( (val = [sbPrefs objectForKey: @"singBoxTlsShortId"]) ) {
                 [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxTlsShortId"]];
             }
+            if ( (val = [sbPrefs objectForKey: @"singBoxWsServerName"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxWsServerName"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxWsPath"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxWsPath"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxHy2Password"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxHy2Password"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxHy2ServerName"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxHy2ServerName"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxHy2ObfsType"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxHy2ObfsType"]];
+            }
+            if ( (val = [sbPrefs objectForKey: @"singBoxHy2ObfsPassword"]) ) {
+                [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"singBoxHy2ObfsPassword"]];
+            }
             if ( remoteAddr ) {
                 [gTbDefaults setObject: remoteAddr forKey: [prefix stringByAppendingString: @"singBoxOriginalRemoteAddress"]];
             }
@@ -3351,14 +3365,10 @@ static pthread_mutex_t areConnectingMutex = PTHREAD_MUTEX_INITIALIZER;
 
             // Parse ydtun (telemost_*) directives
             NSMutableDictionary * ydPrefs = [NSMutableDictionary dictionary];
-            BOOL ydEnabled = [YdtunManager parseYdtunDirectivesFromConfig: cfgContents intoPreferences: ydPrefs];
+            [YdtunManager parseYdtunDirectivesFromConfig: cfgContents intoPreferences: ydPrefs];
 
-            // Save ydtun field preferences (but NOT ydtunEnable — that is controlled by UI)
-            NSString * ydEnableKey = [prefix stringByAppendingString: @"ydtunEnable"];
-            if ( [gTbDefaults objectForKey: ydEnableKey] == nil ) {
-                [gTbDefaults setBool: ydEnabled forKey: ydEnableKey];
-            }
-
+            // Save ydtun field preferences. Connection type is controlled only by the GUI selector,
+            // not by telemost_enable from the .ovpn file.
             if ( (val = [ydPrefs objectForKey: @"ydtunTelemostUrls"]) ) {
                 [gTbDefaults setObject: val forKey: [prefix stringByAppendingString: @"ydtunTelemostUrls"]];
             }

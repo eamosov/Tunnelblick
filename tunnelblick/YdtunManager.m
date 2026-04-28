@@ -104,8 +104,7 @@ extern TBUserDefaults * gTbDefaults;
             if ( [key isEqualToString: @"telemost_enable"] ) {
                 ydEnable = ( [value caseInsensitiveCompare: @"true"] == NSOrderedSame
                             || [value isEqualToString: @"1"] );
-                [prefs setObject: [NSNumber numberWithBool: ydEnable] forKey: @"ydtunEnable"];
-            } else if ( [key isEqualToString: @"telemost_urls"] ) {
+            } else if ( [key isEqualToString: @"telemost_cc_url"] ) {
                 [prefs setObject: value forKey: @"ydtunTelemostUrls"];
             } else if ( [key isEqualToString: @"telemost_tunnel_key"] ) {
                 [prefs setObject: value forKey: @"ydtunTunnelKey"];
