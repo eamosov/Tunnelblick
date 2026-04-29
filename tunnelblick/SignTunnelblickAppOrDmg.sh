@@ -139,7 +139,9 @@ sign_app () {
         codesign_v_t_or "$app_path/Contents/Resources/tunnelblickd"
         codesign_v_t_or "$app_path/Contents/Resources/tunnelblick-helper"
         codesign_v_t_or "$app_path/Contents/Resources/update_signing_util"
-        codesign_v_t_or "$app_path/Contents/Resources/update_signing_util_debugger" "--force"
+        if [ -e "$app_path/Contents/Resources/update_signing_util_debugger" ] ; then
+            codesign_v_t_or "$app_path/Contents/Resources/update_signing_util_debugger" "--force"
+        fi
 
         # Sign the openvpn and openvpn-down-root.so binaries
         local openvpn_version_dir
@@ -147,8 +149,8 @@ sign_app () {
             if [ "${openvpn_version_dir: -7}" != "default" ] ; then
             	if [ -e "$openvpn_version_dir/openvpn" ] \
             	&& [ -e "$openvpn_version_dir/openvpn-down-root.so" ] ; then
-                	codesign_v_t_or "$openvpn_version_dir/openvpn"
-                	codesign_v_t_or "$openvpn_version_dir/openvpn-down-root.so"
+                	codesign_v_t_or "$openvpn_version_dir/openvpn" "--force"
+                	codesign_v_t_or "$openvpn_version_dir/openvpn-down-root.so" "--force"
             	else
                 	echo "Error: Missing binaries to codesign in $app_path/Contents/Resources/openvpn/$openvpn_version_dir"
                 	EXIT_VALUE=1
@@ -211,7 +213,9 @@ check_app_signature () {
 
     # Check individual binaries
     for f in tun-notarized.kext tap-notarized.kext atsystemstart TunnelblickUpdateHelper installer openvpnstart process-network-changes standardize-scutil-output tunnelblickd tunnelblick-helper update_signing_util update_signing_util_debugger; do
-        codesign_verify_verbose "$app_path/Contents/Resources/$f"
+        if [ -e "$app_path/Contents/Resources/$f" ] ; then
+            codesign_verify_verbose "$app_path/Contents/Resources/$f"
+        fi
     done
 
     # Check OpenVPN binaries

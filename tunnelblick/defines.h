@@ -336,7 +336,7 @@ NSLocalizedString(@"Set nameserver (OpenVPN)",     @"PopUpButton")  \
 @"connect-freq", @"connect-retry-max", @"connect-retry", @"connect-timeout", @"connection", \
 @"crl-verify", @"cryptoapicert", @"daemon", @"data-ciphers", @"data-ciphers-fallback", \
 @"dev-node", @"dev-type", @"dev", @"dh", @"dhcp-internal", @"dhcp-option", @"dhcp-pre-release", \
-@"dhcp-release", @"dhcp-renew", @"disable-occ", @"disable", \
+@"dhcp-release", @"dhcp-renew", @"disable-occ", @"disable", @"dns", \
 /* UNSAFE: @"dns-script", */ \
 /* MAY BE UNSAFE: @"dns-updown", */ \
 @"down-pre", \

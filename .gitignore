@@ -25,3 +25,5 @@ tunnelblick/Debug_update_signing_util/build
 ._*
 .Spotlight-V100
 .Trashes
+.agent-tests/
+.claude/
