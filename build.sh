@@ -116,12 +116,24 @@ build_third_party() {
     log "Third-party dependencies built successfully"
 }
 
-# Check that third-party products exist
+# Check that third-party products used by the app packaging exist.
+# OpenVPN is built by tunnelblick/build-openvpn.sh from NEKROVPN_PATH.
 check_third_party() {
     local products_dir="$THIRD_PARTY_DIR/products"
-    if [ ! -d "$products_dir/openvpn" ]; then
-        error "Third-party products not found at $products_dir/openvpn.\n  Run without --skip-third-party first."
+    local missing=()
+
+    if [ ! -d "$products_dir/easy-rsa-tunnelblick" ]; then
+        missing+=("$products_dir/easy-rsa-tunnelblick")
     fi
+
+    if [ ! -d "$products_dir/tuntap" ]; then
+        missing+=("$products_dir/tuntap")
+    fi
+
+    if [ ${#missing[@]} -ne 0 ]; then
+        error "Third-party products not found:\n  ${missing[*]}\n  Run without --skip-third-party first."
+    fi
+
     log "Third-party products found"
 }
 

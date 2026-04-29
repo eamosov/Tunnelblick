@@ -174,8 +174,7 @@ DOWN_ROOT_ARCH_2_2=$(foreach f, $(TARGET_ARCHS), -arch $f)
 # Define the make rules:
 
 all: 	built-easy-rsa-tunnelblick \
-	built-tuntap               \
-	built-openvpn
+	built-tuntap
 	@echo "THIRD_PARTY: Made all third_party for Tunnelblick" ; \
 
 clean:
